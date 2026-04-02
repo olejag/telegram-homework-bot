@@ -10,17 +10,17 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 homeworks = {
     "hw1": {
-        "title": "Homework 1",
-        "theory": "Theory for Homework 1:\nAddition basics.",
+        "title": "Домашняя работа №1",
+        "theory": "Теория для ДЗ№1:\nAddition basics.",
         "questions": [
             {"question": "Ответ на №1", "answer": "8"},
-            {"question": "3 + 5 = ?", "answer": "8"},
-            {"question": "10 - 7 = ?", "answer": "3"},
+            {"question": "Ответ на №2", "answer": "8"},
+            {"question": "Ответ на №3", "answer": "3"},
         ],
     },
     "hw2": {
-        "title": "Homework 2",
-        "theory": "Theory for Homework 2:\nMultiplication basics.",
+        "title": "Домашняя работа №2",
+        "theory": "Теория для ДЗ№2:\nMultiplication basics.",
         "questions": [
             {"question": "2 * 3 = ?", "answer": "6"},
             {"question": "4 * 5 = ?", "answer": "20"},
@@ -33,8 +33,8 @@ users = {}
 
 def main_menu():
     kb = InlineKeyboardBuilder()
-    kb.button(text="Выбрать ДЗ", callback_data="choose_hw")
-    kb.button(text="Теория", callback_data="theory_menu")
+    kb.button(text="📚 Выбрать ДЗ", callback_data="choose_hw")
+    kb.button(text="📖 Теория", callback_data="theory_menu")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -55,7 +55,7 @@ async def send_question(chat_id: int):
     if index >= len(hw["questions"]):
         await bot.send_message(
             chat_id,
-            f"Finished.\nYour result: {user['score']}/{len(hw['questions'])} correct."
+            f"Конец.\nТвой результат: {user['score']}/{len(hw['questions'])} правильных."
         )
         users[chat_id]["mode"] = None
         return
@@ -73,7 +73,7 @@ async def start_handler(message: Message):
         "mode": "menu",
     }
     await message.answer(
-        "Hi. I am a homework checker bot.",
+        "Привет! Я бот для проверки домашнего задания",
         reply_markup=main_menu()
     )
 
@@ -81,7 +81,7 @@ async def start_handler(message: Message):
 @dp.callback_query(F.data == "choose_hw")
 async def choose_hw_handler(callback: CallbackQuery):
     await callback.message.answer(
-        "Choose a homework:",
+        "Выбери номер ДЗ:",
         reply_markup=homework_menu("start_hw")
     )
     await callback.answer()
@@ -90,7 +90,7 @@ async def choose_hw_handler(callback: CallbackQuery):
 @dp.callback_query(F.data == "theory_menu")
 async def theory_menu_handler(callback: CallbackQuery):
     await callback.message.answer(
-        "Choose homework theory:",
+        "Выбери по какому ДЗ тебе нужна теория:",
         reply_markup=homework_menu("theory")
     )
     await callback.answer()
@@ -133,7 +133,7 @@ async def answer_handler(message: Message):
     index = user["question_index"]
 
     if index >= len(hw["questions"]):
-        await message.answer("This homework is already finished.")
+        await message.answer("Эта домашняя работа уже сделана!.")
         return
 
     user_answer = message.text.strip().lower()
@@ -141,10 +141,10 @@ async def answer_handler(message: Message):
 
     if user_answer == correct_answer:
         users[chat_id]["score"] += 1
-        await message.answer("Correct")
+        await message.answer("Верно!")
     else:
         await message.answer(
-            f"Wrong. Correct answer: {hw['questions'][index]['answer']}"
+            f"Неверно. Попробуй еще раз:)"
         )
 
     users[chat_id]["question_index"] += 1
