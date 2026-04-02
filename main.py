@@ -33,8 +33,8 @@ users = {}
 
 def main_menu():
     kb = InlineKeyboardBuilder()
-    kb.button(text="Choose Homework", callback_data="choose_hw")
-    kb.button(text="Theory", callback_data="theory_menu")
+    kb.button(text="Выбрать ДЗ", callback_data="choose_hw")
+    kb.button(text="Теория", callback_data="theory_menu")
     kb.adjust(1)
     return kb.as_markup()
 
