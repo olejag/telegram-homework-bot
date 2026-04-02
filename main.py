@@ -55,7 +55,7 @@ async def send_question(chat_id: int):
     if index >= len(hw["questions"]):
         await bot.send_message(
             chat_id,
-            f"Конец.\nТвой результат: {user['score']}/{len(hw['questions'])} правильных."
+            f"Конец.\nТвой результат: правильно {user['score']}/{len(hw['questions'])}"
         )
         users[chat_id]["mode"] = None
         return
