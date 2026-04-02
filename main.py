@@ -13,17 +13,18 @@ homeworks = {
         "title": "Домашняя работа №1",
         "theory": "Теория для ДЗ №1:\nAddition basics.",
         "questions": [
-            {"question": "Ответ на №1", "answer": "8"},
-            {"question": "Ответ на №2", "answer": "8"},
-            {"question": "Ответ на №3", "answer": "3"},
+            {"question": "Ответ на №1:", "answer": "8"},
+            {"question": "Ответ на №2:", "answer": "8"},
+            {"question": "Ответ на №3:", "answer": "3"},
         ],
     },
     "hw2": {
         "title": "Домашняя работа №2",
         "theory": "Теория для ДЗ №2:\nMultiplication basics.",
         "questions": [
-            {"question": "2 * 3 = ?", "answer": "6"},
-            {"question": "4 * 5 = ?", "answer": "20"},
+            {"question": "Ответ на №1:", "answer": "8"},
+            {"question": "Ответ на №2:", "answer": "8"},
+            {"question": "Ответ на №3:", "answer": "3"},
         ],
     },
 }
@@ -81,7 +82,7 @@ async def start_handler(message: Message):
 @dp.callback_query(F.data == "choose_hw")
 async def choose_hw_handler(callback: CallbackQuery):
     await callback.message.answer(
-        "Выбери номер ДЗ:",
+        "Выбери нужное ДЗ:",
         reply_markup=homework_menu("start_hw")
     )
     await callback.answer()
@@ -125,7 +126,7 @@ async def answer_handler(message: Message):
     chat_id = message.chat.id
 
     if chat_id not in users or users[chat_id].get("mode") != "quiz":
-        await message.answer("Press /start and choose homework first.")
+        await message.answer("Напиши /start, а то не сработаемся:(")
         return
 
     user = users[chat_id]
@@ -144,7 +145,7 @@ async def answer_handler(message: Message):
         await message.answer("Верно!")
     else:
         await message.answer(
-            f"Неверно. Попробуй еще раз:)"
+            f"Неверно."
         )
 
     users[chat_id]["question_index"] += 1
