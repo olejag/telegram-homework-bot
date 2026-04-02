@@ -13,7 +13,7 @@ homeworks = {
         "title": "Homework 1",
         "theory": "Theory for Homework 1:\nAddition basics.",
         "questions": [
-            {"answer": "4"},
+            {"question": "Ответ на №1", "answer": "8"},
             {"question": "3 + 5 = ?", "answer": "8"},
             {"question": "10 - 7 = ?", "answer": "3"},
         ],
