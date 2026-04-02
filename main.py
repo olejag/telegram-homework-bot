@@ -74,7 +74,7 @@ async def start_handler(message: Message):
         "mode": "menu",
     }
     await message.answer(
-        "Привет! Я бот для проверки домашнего задания",
+        "Привет! Я бот для проверки домашнего задания😁",
         reply_markup=main_menu()
     )
 
@@ -126,7 +126,7 @@ async def answer_handler(message: Message):
     chat_id = message.chat.id
 
     if chat_id not in users or users[chat_id].get("mode") != "quiz":
-        await message.answer("Напиши /start, а то не сработаемся:(")
+        await message.answer("Ты по моему по кнопке не попал🤔(напиши /start)")
         return
 
     user = users[chat_id]
@@ -134,7 +134,7 @@ async def answer_handler(message: Message):
     index = user["question_index"]
 
     if index >= len(hw["questions"]):
-        await message.answer("Эта домашняя работа уже сделана!.")
+        await message.answer("Эта домашняя работа уже сделана!💯.")
         return
 
     user_answer = message.text.strip().lower()
@@ -142,7 +142,7 @@ async def answer_handler(message: Message):
 
     if user_answer == correct_answer:
         users[chat_id]["score"] += 1
-        await message.answer("Верно!")
+        await message.answer("Верно!✅")
     else:
         await message.answer(
             f"Неверно."
