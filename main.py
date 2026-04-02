@@ -11,7 +11,7 @@ dp = Dispatcher()
 homeworks = {
     "hw1": {
         "title": "Домашняя работа №1",
-        "theory": "Теория для ДЗ№1:\nAddition basics.",
+        "theory": "Теория для ДЗ №1:",
         "questions": [
             {"question": "Ответ на №1", "answer": "8"},
             {"question": "Ответ на №2", "answer": "8"},
@@ -20,7 +20,7 @@ homeworks = {
     },
     "hw2": {
         "title": "Домашняя работа №2",
-        "theory": "Теория для ДЗ№2:\nMultiplication basics.",
+        "theory": "Теория для ДЗ №2:\nMultiplication basics.",
         "questions": [
             {"question": "2 * 3 = ?", "answer": "6"},
             {"question": "4 * 5 = ?", "answer": "20"},
