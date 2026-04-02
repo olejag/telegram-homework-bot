@@ -11,7 +11,7 @@ dp = Dispatcher()
 homeworks = {
     "hw1": {
         "title": "Домашняя работа №1",
-        "theory": "Теория для ДЗ №1:",
+        "theory": "Теория для ДЗ №1:\nAddition basics.",
         "questions": [
             {"question": "Ответ на №1", "answer": "8"},
             {"question": "Ответ на №2", "answer": "8"},
@@ -61,7 +61,7 @@ async def send_question(chat_id: int):
         return
 
     question_text = hw["questions"][index]["question"]
-    await bot.send_message(chat_id, f"Question {index + 1}: {question_text}")
+    await bot.send_message(chat_id, f"{question_text}")
 
 
 @dp.message(CommandStart())
@@ -115,7 +115,7 @@ async def start_hw_handler(callback: CallbackQuery):
         "mode": "quiz",
     }
 
-    await callback.message.answer(f"Starting {homeworks[hw_id]['title']}")
+    await callback.message.answer(f"{homeworks[hw_id]['title']}")
     await send_question(callback.message.chat.id)
     await callback.answer()
 
