@@ -4,7 +4,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-TOKEN = "8364336026:AAG98jesPl2QOilOqUxJZ2nyQlagc7yoQkc"
+TOKEN = "токен"
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -352,26 +352,6 @@ async def theory_menu_handler(callback: CallbackQuery):
         "Выбери задание:",
         reply_markup=theory_menu_kb()
     )
-    await callback.answer()
-async def theory_menu_handler(callback: CallbackQuery):
-    if not is_allowed(callback.from_user.id):
-        await callback.answer("Нет доступа", show_alert=True)
-        return
-
-    chat_id = callback.message.chat.id
-    ensure_user(chat_id)
-    await clear_quiz_and_probnik_messages(chat_id)
-
-    users[chat_id]["last_menu"] = "theory_menu"
-    users[chat_id]["mode"] = "menu"
-
-    await delete_callback_message(callback)
-    await send_and_store(
-        chat_id,
-        "Выбери по какому заданию ЕГЭ тебе нужна теория:",
-        reply_markup=homework_menu("theory", "main_menu")
-    )
-    await callback.answer()
 
 
 @dp.callback_query(F.data.startswith("theory:"))
@@ -393,11 +373,7 @@ async def theory_handler(callback: CallbackQuery):
         text,
         reply_markup=theory_back_menu()
     )
-    await callback.answer()
-async def theory_handler(callback: CallbackQuery):
-    if not is_allowed(callback.from_user.id):
-        await callback.answer("Нет доступа", show_alert=True)
-        return
+
 
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
