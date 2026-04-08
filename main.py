@@ -36,8 +36,8 @@ probnik_codes = {
 }
 
 ALLOWED_USERS = {
-    @whyrine,
-    @love_werrmv,
+    12,
+    123,
 }
 
 users = {}
@@ -169,7 +169,6 @@ async def start_handler(message: Message):
 
     if not is_allowed(message.from_user.id):
         await message.answer("У тебя нет доступа к этому боту.")
-        return
 
     ensure_user(message.chat.id)
     users[message.chat.id].update({
