@@ -57,6 +57,7 @@ def ensure_user(chat_id: int):
             "mode": "menu",
             "last_menu": "main",
             "last_bot_message_id": None,
+            "history_message_ids": [],
         }
 
 
@@ -82,6 +83,26 @@ async def send_and_store(chat_id: int, text: str, reply_markup=None):
     await delete_last_bot_message(chat_id)
     msg = await bot.send_message(chat_id, text, reply_markup=reply_markup)
     users[chat_id]["last_bot_message_id"] = msg.message_id
+    return msg
+
+
+async def send_history_message(chat_id: int, text: str, reply_markup=None):
+    ensure_user(chat_id)
+    msg = await bot.send_message(chat_id, text, reply_markup=reply_markup)
+    users[chat_id]["history_message_ids"].append(msg.message_id)
+    return msg
+
+
+async def clear_history_messages(chat_id: int):
+    ensure_user(chat_id)
+
+    for message_id in users[chat_id]["history_message_ids"]:
+        try:
+            await bot.delete_message(chat_id, message_id)
+        except:
+            pass
+
+    users[chat_id]["history_message_ids"] = []
 
 
 async def delete_callback_message(callback: CallbackQuery):
@@ -142,7 +163,7 @@ async def send_question(chat_id: int):
 
     if index >= len(hw["questions"]):
         user["score"] = calculate_score(user["hw"], user["answers"])
-        await send_and_store(
+        await send_history_message(
             chat_id,
             f"Твой результат: правильно {user['score']}/{len(hw['questions'])}",
             reply_markup=main_menu()
@@ -153,14 +174,16 @@ async def send_question(chat_id: int):
         users[chat_id]["score"] = 0
         users[chat_id]["answers"] = []
         users[chat_id]["last_menu"] = "main"
+        users[chat_id]["last_bot_message_id"] = None
         return
 
     question_text = hw["questions"][index]["question"]
-    await send_and_store(
+    await send_history_message(
         chat_id,
         question_text,
         reply_markup=quiz_back_menu()
     )
+    users[chat_id]["last_bot_message_id"] = None
 
 
 @dp.message(CommandStart())
@@ -175,6 +198,9 @@ async def start_handler(message: Message):
         return
 
     ensure_user(message.chat.id)
+    await clear_history_messages(message.chat.id)
+    await delete_last_bot_message(message.chat.id)
+
     users[message.chat.id].update({
         "hw": None,
         "question_index": 0,
@@ -199,6 +225,9 @@ async def probnik_handler(callback: CallbackQuery):
 
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
+    await clear_history_messages(chat_id)
+    await delete_last_bot_message(chat_id)
+
     users[chat_id]["mode"] = "probnik"
     users[chat_id]["last_menu"] = "main"
 
@@ -215,6 +244,9 @@ async def main_menu_handler(callback: CallbackQuery):
 
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
+    await clear_history_messages(chat_id)
+    await delete_last_bot_message(chat_id)
+
     users[chat_id]["mode"] = "menu"
     users[chat_id]["last_menu"] = "main"
     users[chat_id]["hw"] = None
@@ -239,6 +271,9 @@ async def choose_hw_handler(callback: CallbackQuery):
 
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
+    await clear_history_messages(chat_id)
+    await delete_last_bot_message(chat_id)
+
     users[chat_id]["last_menu"] = "choose_hw"
     users[chat_id]["mode"] = "menu"
 
@@ -259,6 +294,9 @@ async def theory_menu_handler(callback: CallbackQuery):
 
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
+    await clear_history_messages(chat_id)
+    await delete_last_bot_message(chat_id)
+
     users[chat_id]["last_menu"] = "theory_menu"
     users[chat_id]["mode"] = "menu"
 
@@ -279,6 +317,8 @@ async def theory_handler(callback: CallbackQuery):
 
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
+    await clear_history_messages(chat_id)
+    await delete_last_bot_message(chat_id)
 
     hw_id = callback.data.split(":")[1]
     theory_text = homeworks[hw_id]["theory"]
@@ -302,6 +342,8 @@ async def start_hw_handler(callback: CallbackQuery):
 
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
+    await clear_history_messages(chat_id)
+    await delete_last_bot_message(chat_id)
 
     hw_id = callback.data.split(":")[1]
     users[chat_id].update({
@@ -328,6 +370,8 @@ async def quiz_back_handler(callback: CallbackQuery):
     ensure_user(chat_id)
 
     if users[chat_id].get("mode") != "quiz":
+        await clear_history_messages(chat_id)
+        await delete_last_bot_message(chat_id)
         await delete_callback_message(callback)
         await send_and_store(
             chat_id,
@@ -341,12 +385,24 @@ async def quiz_back_handler(callback: CallbackQuery):
     await delete_callback_message(callback)
 
     if user["question_index"] > 0:
+        last_index = len(user["history_message_ids"]) - 1
+        if last_index >= 0:
+            await delete_message_safe(chat_id, user["history_message_ids"].pop())
+
+        last_index = len(user["history_message_ids"]) - 1
+        if last_index >= 0:
+            await delete_message_safe(chat_id, user["history_message_ids"].pop())
+
         user["question_index"] -= 1
+
         if len(user["answers"]) > user["question_index"]:
             user["answers"].pop()
+
         user["score"] = calculate_score(user["hw"], user["answers"])
         await send_question(chat_id)
     else:
+        await clear_history_messages(chat_id)
+        await delete_last_bot_message(chat_id)
         users[chat_id].update({
             "hw": None,
             "question_index": 0,
@@ -391,13 +447,15 @@ async def answer_handler(message: Message):
         except:
             pass
 
+        await delete_last_bot_message(chat_id)
+
         if code in probnik_codes:
-            await send_and_store(chat_id, f"Вот твой вариант:\n{probnik_codes[code]}")
+            await send_history_message(chat_id, f"Вот твой вариант:\n{probnik_codes[code]}")
         else:
-            await send_and_store(chat_id, "Неверный код❌")
+            await send_history_message(chat_id, "Неверный код❌")
 
         users[chat_id]["mode"] = "menu"
-        await send_and_store(chat_id, "Возвращаю в меню:", reply_markup=main_menu())
+        users[chat_id]["last_bot_message_id"] = None
         return
 
     if users[chat_id].get("mode") != "quiz":
@@ -428,9 +486,9 @@ async def answer_handler(message: Message):
     user["score"] = calculate_score(user["hw"], user["answers"])
 
     if user_answer == correct_answer:
-        await send_and_store(chat_id, "Верно!✅")
+        await send_history_message(chat_id, "Верно!✅")
     else:
-        await send_and_store(chat_id, "Неверно❌.")
+        await send_history_message(chat_id, "Неверно❌.")
 
     users[chat_id]["question_index"] += 1
     await send_question(chat_id)
