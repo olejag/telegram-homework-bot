@@ -58,6 +58,7 @@ def ensure_user(chat_id: int):
             "last_menu": "main",
             "last_bot_message_id": None,
             "history_message_ids": [],
+            "user_message_ids": [],
         }
 
 
@@ -103,6 +104,24 @@ async def clear_history_messages(chat_id: int):
             pass
 
     users[chat_id]["history_message_ids"] = []
+
+
+async def clear_user_messages(chat_id: int):
+    ensure_user(chat_id)
+
+    for message_id in users[chat_id]["user_message_ids"]:
+        try:
+            await bot.delete_message(chat_id, message_id)
+        except:
+            pass
+
+    users[chat_id]["user_message_ids"] = []
+
+
+async def clear_quiz_and_probnik_messages(chat_id: int):
+    await clear_history_messages(chat_id)
+    await clear_user_messages(chat_id)
+    await delete_last_bot_message(chat_id)
 
 
 async def delete_callback_message(callback: CallbackQuery):
@@ -155,6 +174,13 @@ def quiz_back_menu():
     return kb.as_markup()
 
 
+def probnik_back_menu():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="⬅️ Назад", callback_data="main_menu")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
 async def send_question(chat_id: int):
     ensure_user(chat_id)
     user = users[chat_id]
@@ -188,18 +214,16 @@ async def send_question(chat_id: int):
 
 @dp.message(CommandStart())
 async def start_handler(message: Message):
-    try:
-        await message.delete()
-    except:
-        pass
-
     if not is_allowed(message.from_user.id):
+        try:
+            await message.delete()
+        except:
+            pass
         await bot.send_message(message.chat.id, f"Твой ID: {message.from_user.id}")
         return
 
     ensure_user(message.chat.id)
-    await clear_history_messages(message.chat.id)
-    await delete_last_bot_message(message.chat.id)
+    await clear_quiz_and_probnik_messages(message.chat.id)
 
     users[message.chat.id].update({
         "hw": None,
@@ -209,6 +233,11 @@ async def start_handler(message: Message):
         "mode": "menu",
         "last_menu": "main",
     })
+
+    try:
+        await message.delete()
+    except:
+        pass
 
     await send_and_store(
         message.chat.id,
@@ -225,14 +254,17 @@ async def probnik_handler(callback: CallbackQuery):
 
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
-    await clear_history_messages(chat_id)
-    await delete_last_bot_message(chat_id)
+    await clear_quiz_and_probnik_messages(chat_id)
 
     users[chat_id]["mode"] = "probnik"
     users[chat_id]["last_menu"] = "main"
 
     await delete_callback_message(callback)
-    await send_and_store(chat_id, "Введи код варианта:")
+    await send_and_store(
+        chat_id,
+        "Введи код варианта:",
+        reply_markup=probnik_back_menu()
+    )
     await callback.answer()
 
 
@@ -244,8 +276,7 @@ async def main_menu_handler(callback: CallbackQuery):
 
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
-    await clear_history_messages(chat_id)
-    await delete_last_bot_message(chat_id)
+    await clear_quiz_and_probnik_messages(chat_id)
 
     users[chat_id]["mode"] = "menu"
     users[chat_id]["last_menu"] = "main"
@@ -271,8 +302,7 @@ async def choose_hw_handler(callback: CallbackQuery):
 
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
-    await clear_history_messages(chat_id)
-    await delete_last_bot_message(chat_id)
+    await clear_quiz_and_probnik_messages(chat_id)
 
     users[chat_id]["last_menu"] = "choose_hw"
     users[chat_id]["mode"] = "menu"
@@ -294,8 +324,7 @@ async def theory_menu_handler(callback: CallbackQuery):
 
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
-    await clear_history_messages(chat_id)
-    await delete_last_bot_message(chat_id)
+    await clear_quiz_and_probnik_messages(chat_id)
 
     users[chat_id]["last_menu"] = "theory_menu"
     users[chat_id]["mode"] = "menu"
@@ -317,8 +346,7 @@ async def theory_handler(callback: CallbackQuery):
 
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
-    await clear_history_messages(chat_id)
-    await delete_last_bot_message(chat_id)
+    await clear_quiz_and_probnik_messages(chat_id)
 
     hw_id = callback.data.split(":")[1]
     theory_text = homeworks[hw_id]["theory"]
@@ -342,8 +370,7 @@ async def start_hw_handler(callback: CallbackQuery):
 
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
-    await clear_history_messages(chat_id)
-    await delete_last_bot_message(chat_id)
+    await clear_quiz_and_probnik_messages(chat_id)
 
     hw_id = callback.data.split(":")[1]
     users[chat_id].update({
@@ -370,8 +397,7 @@ async def quiz_back_handler(callback: CallbackQuery):
     ensure_user(chat_id)
 
     if users[chat_id].get("mode") != "quiz":
-        await clear_history_messages(chat_id)
-        await delete_last_bot_message(chat_id)
+        await clear_quiz_and_probnik_messages(chat_id)
         await delete_callback_message(callback)
         await send_and_store(
             chat_id,
@@ -389,6 +415,10 @@ async def quiz_back_handler(callback: CallbackQuery):
         if last_index >= 0:
             await delete_message_safe(chat_id, user["history_message_ids"].pop())
 
+        last_user_index = len(user["user_message_ids"]) - 1
+        if last_user_index >= 0:
+            await delete_message_safe(chat_id, user["user_message_ids"].pop())
+
         last_index = len(user["history_message_ids"]) - 1
         if last_index >= 0:
             await delete_message_safe(chat_id, user["history_message_ids"].pop())
@@ -401,8 +431,7 @@ async def quiz_back_handler(callback: CallbackQuery):
         user["score"] = calculate_score(user["hw"], user["answers"])
         await send_question(chat_id)
     else:
-        await clear_history_messages(chat_id)
-        await delete_last_bot_message(chat_id)
+        await clear_quiz_and_probnik_messages(chat_id)
         users[chat_id].update({
             "hw": None,
             "question_index": 0,
@@ -470,10 +499,7 @@ async def answer_handler(message: Message):
     hw = homeworks[user["hw"]]
     index = user["question_index"]
 
-    try:
-        await message.delete()
-    except:
-        pass
+    users[chat_id]["user_message_ids"].append(message.message_id)
 
     user_answer = message.text.strip().lower()
     correct_answer = hw["questions"][index]["answer"].strip().lower()
