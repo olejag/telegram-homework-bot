@@ -35,7 +35,59 @@ probnik_codes = {
     "444": "https://kompege.ru/variant?kim=25058419",
 }
 
+ALLOWED_USERS = {
+    123456789,
+    987654321,
+}
+
 users = {}
+
+
+def is_allowed(user_id: int) -> bool:
+    return user_id in ALLOWED_USERS
+
+
+def ensure_user(chat_id: int):
+    if chat_id not in users:
+        users[chat_id] = {
+            "hw": None,
+            "question_index": 0,
+            "score": 0,
+            "mode": "menu",
+            "last_menu": "main",
+            "last_bot_message_id": None,
+        }
+
+
+async def delete_message_safe(chat_id: int, message_id: int | None):
+    if not message_id:
+        return
+    try:
+        await bot.delete_message(chat_id, message_id)
+    except:
+        pass
+
+
+async def delete_last_bot_message(chat_id: int):
+    ensure_user(chat_id)
+    last_message_id = users[chat_id].get("last_bot_message_id")
+    if last_message_id:
+        await delete_message_safe(chat_id, last_message_id)
+        users[chat_id]["last_bot_message_id"] = None
+
+
+async def send_and_store(chat_id: int, text: str, reply_markup=None):
+    ensure_user(chat_id)
+    await delete_last_bot_message(chat_id)
+    msg = await bot.send_message(chat_id, text, reply_markup=reply_markup)
+    users[chat_id]["last_bot_message_id"] = msg.message_id
+
+
+async def delete_callback_message(callback: CallbackQuery):
+    try:
+        await callback.message.delete()
+    except:
+        pass
 
 
 def main_menu():
@@ -56,7 +108,7 @@ def homework_menu(prefix: str, back_callback: str = "main_menu"):
     return kb.as_markup()
 
 
-def theory_back_menu(hw_id: str):
+def theory_back_menu():
     kb = InlineKeyboardBuilder()
     kb.button(text="⬅️ Назад", callback_data="theory_menu")
     kb.adjust(1)
@@ -71,12 +123,13 @@ def quiz_back_menu():
 
 
 async def send_question(chat_id: int):
+    ensure_user(chat_id)
     user = users[chat_id]
     hw = homeworks[user["hw"]]
     index = user["question_index"]
 
     if index >= len(hw["questions"]):
-        await bot.send_message(
+        await send_and_store(
             chat_id,
             f"Твой результат: правильно {user['score']}/{len(hw['questions'])}",
             reply_markup=main_menu()
@@ -85,10 +138,11 @@ async def send_question(chat_id: int):
         users[chat_id]["hw"] = None
         users[chat_id]["question_index"] = 0
         users[chat_id]["score"] = 0
+        users[chat_id]["last_menu"] = "main"
         return
 
     question_text = hw["questions"][index]["question"]
-    await bot.send_message(
+    await send_and_store(
         chat_id,
         question_text,
         reply_markup=quiz_back_menu()
@@ -97,45 +151,64 @@ async def send_question(chat_id: int):
 
 @dp.message(CommandStart())
 async def start_handler(message: Message):
-    users[message.chat.id] = {
+    if not is_allowed(message.from_user.id):
+        await message.answer("У тебя нет доступа к этому боту.")
+        return
+
+    ensure_user(message.chat.id)
+    users[message.chat.id].update({
         "hw": None,
         "question_index": 0,
         "score": 0,
         "mode": "menu",
         "last_menu": "main",
-    }
-    await message.answer(
+    })
+
+    try:
+        await message.delete()
+    except:
+        pass
+
+    await send_and_store(
+        message.chat.id,
         "Привет! Я бот для проверки домашнего задания😁",
         reply_markup=main_menu()
     )
 
+
 @dp.callback_query(F.data == "probnik")
 async def probnik_handler(callback: CallbackQuery):
-    users[callback.message.chat.id]["mode"] = "probnik"
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
 
-    await callback.message.answer(
-        "Введи код варианта:"
-    )
+    chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+    users[chat_id]["mode"] = "probnik"
+    users[chat_id]["last_menu"] = "main"
+
+    await delete_callback_message(callback)
+    await send_and_store(chat_id, "Введи код варианта:")
     await callback.answer()
 
 
 @dp.callback_query(F.data == "main_menu")
 async def main_menu_handler(callback: CallbackQuery):
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
     chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+    users[chat_id]["mode"] = "menu"
+    users[chat_id]["last_menu"] = "main"
+    users[chat_id]["hw"] = None
+    users[chat_id]["question_index"] = 0
+    users[chat_id]["score"] = 0
 
-    if chat_id not in users:
-        users[chat_id] = {
-            "hw": None,
-            "question_index": 0,
-            "score": 0,
-            "mode": "menu",
-            "last_menu": "main",
-        }
-    else:
-        users[chat_id]["mode"] = "menu"
-        users[chat_id]["last_menu"] = "main"
-
-    await callback.message.answer(
+    await delete_callback_message(callback)
+    await send_and_store(
+        chat_id,
         "Главное меню:",
         reply_markup=main_menu()
     )
@@ -144,19 +217,18 @@ async def main_menu_handler(callback: CallbackQuery):
 
 @dp.callback_query(F.data == "choose_hw")
 async def choose_hw_handler(callback: CallbackQuery):
-    chat_id = callback.message.chat.id
-    if chat_id not in users:
-        users[chat_id] = {
-            "hw": None,
-            "question_index": 0,
-            "score": 0,
-            "mode": "menu",
-            "last_menu": "choose_hw",
-        }
-    else:
-        users[chat_id]["last_menu"] = "choose_hw"
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
 
-    await callback.message.answer(
+    chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+    users[chat_id]["last_menu"] = "choose_hw"
+    users[chat_id]["mode"] = "menu"
+
+    await delete_callback_message(callback)
+    await send_and_store(
+        chat_id,
         "Выбери нужное ДЗ:",
         reply_markup=homework_menu("start_hw", "main_menu")
     )
@@ -165,19 +237,18 @@ async def choose_hw_handler(callback: CallbackQuery):
 
 @dp.callback_query(F.data == "theory_menu")
 async def theory_menu_handler(callback: CallbackQuery):
-    chat_id = callback.message.chat.id
-    if chat_id not in users:
-        users[chat_id] = {
-            "hw": None,
-            "question_index": 0,
-            "score": 0,
-            "mode": "menu",
-            "last_menu": "theory_menu",
-        }
-    else:
-        users[chat_id]["last_menu"] = "theory_menu"
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
 
-    await callback.message.answer(
+    chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+    users[chat_id]["last_menu"] = "theory_menu"
+    users[chat_id]["mode"] = "menu"
+
+    await delete_callback_message(callback)
+    await send_and_store(
+        chat_id,
         "Выбери по какому ДЗ тебе нужна теория:",
         reply_markup=homework_menu("theory", "main_menu")
     )
@@ -186,51 +257,64 @@ async def theory_menu_handler(callback: CallbackQuery):
 
 @dp.callback_query(F.data.startswith("theory:"))
 async def theory_handler(callback: CallbackQuery):
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
     chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+
     hw_id = callback.data.split(":")[1]
     theory_text = homeworks[hw_id]["theory"]
+    users[chat_id]["last_menu"] = "theory_view"
+    users[chat_id]["mode"] = "menu"
 
-    if chat_id not in users:
-        users[chat_id] = {
-            "hw": None,
-            "question_index": 0,
-            "score": 0,
-            "mode": "menu",
-            "last_menu": "theory_view",
-        }
-    else:
-        users[chat_id]["last_menu"] = "theory_view"
-
-    await callback.message.answer(
+    await delete_callback_message(callback)
+    await send_and_store(
+        chat_id,
         theory_text,
-        reply_markup=theory_back_menu(hw_id)
+        reply_markup=theory_back_menu()
     )
     await callback.answer()
 
 
 @dp.callback_query(F.data.startswith("start_hw:"))
 async def start_hw_handler(callback: CallbackQuery):
-    hw_id = callback.data.split(":")[1]
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
 
-    users[callback.message.chat.id] = {
+    chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+
+    hw_id = callback.data.split(":")[1]
+    users[chat_id].update({
         "hw": hw_id,
         "question_index": 0,
         "score": 0,
         "mode": "quiz",
         "last_menu": "choose_hw",
-    }
+    })
 
-    await callback.message.answer(f"{homeworks[hw_id]['title']}")
-    await send_question(callback.message.chat.id)
+    await delete_callback_message(callback)
+    await send_and_store(chat_id, f"{homeworks[hw_id]['title']}")
+    await send_question(chat_id)
     await callback.answer()
 
 
 @dp.callback_query(F.data == "quiz_back")
 async def quiz_back_handler(callback: CallbackQuery):
-    chat_id = callback.message.chat.id
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
 
-    if chat_id not in users or users[chat_id].get("mode") != "quiz":
-        await callback.message.answer(
+    chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+
+    if users[chat_id].get("mode") != "quiz":
+        await delete_callback_message(callback)
+        await send_and_store(
+            chat_id,
             "Главное меню:",
             reply_markup=main_menu()
         )
@@ -239,19 +323,22 @@ async def quiz_back_handler(callback: CallbackQuery):
 
     user = users[chat_id]
 
+    await delete_callback_message(callback)
+
     if user["question_index"] > 0:
         user["question_index"] -= 1
-        await callback.message.answer("Возвращаемся к предыдущему вопросу:")
+        await send_and_store(chat_id, "Возвращаемся к предыдущему вопросу:")
         await send_question(chat_id)
     else:
-        users[chat_id] = {
+        users[chat_id].update({
             "hw": None,
             "question_index": 0,
             "score": 0,
             "mode": "menu",
             "last_menu": "main",
-        }
-        await callback.message.answer(
+        })
+        await send_and_store(
+            chat_id,
             "Ты вернулся в главное меню:",
             reply_markup=main_menu()
         )
@@ -261,39 +348,63 @@ async def quiz_back_handler(callback: CallbackQuery):
 
 @dp.message()
 async def answer_handler(message: Message):
+    if not is_allowed(message.from_user.id):
+        await message.answer("У тебя нет доступа к этому боту.")
+        return
+
     chat_id = message.chat.id
+    ensure_user(chat_id)
+
+    if not message.text:
+        try:
+            await message.delete()
+        except:
+            pass
+        await send_and_store(chat_id, "Пожалуйста, отправь текстовый ответ.")
+        return
+
     if users[chat_id].get("mode") == "probnik":
         code = message.text.strip()
 
+        try:
+            await message.delete()
+        except:
+            pass
+
         if code in probnik_codes:
-            await message.answer(f"Вот твой вариант:\n{probnik_codes[code]}")
+            await send_and_store(chat_id, f"Вот твой вариант:\n{probnik_codes[code]}")
         else:
-            await message.answer("Неверный код❌")
+            await send_and_store(chat_id, "Неверный код❌")
 
         users[chat_id]["mode"] = "menu"
-        await message.answer("Возвращаю в меню:", reply_markup=main_menu())
+        await send_and_store(chat_id, "Возвращаю в меню:", reply_markup=main_menu())
         return
 
-    if chat_id not in users or users[chat_id].get("mode") != "quiz":
-        await message.answer("Ты по моему по кнопке не попал🤔(напиши /start)")
-        return
-
-    if not message.text:
-        await message.answer("Пожалуйста, отправь текстовый ответ.")
+    if users[chat_id].get("mode") != "quiz":
+        try:
+            await message.delete()
+        except:
+            pass
+        await send_and_store(chat_id, "Ты по моему по кнопке не попал🤔(напиши /start)")
         return
 
     user = users[chat_id]
     hw = homeworks[user["hw"]]
     index = user["question_index"]
 
+    try:
+        await message.delete()
+    except:
+        pass
+
     user_answer = message.text.strip().lower()
     correct_answer = hw["questions"][index]["answer"].strip().lower()
 
     if user_answer == correct_answer:
         users[chat_id]["score"] += 1
-        await message.answer("Верно!✅")
+        await send_and_store(chat_id, "Верно!✅")
     else:
-        await message.answer("Неверно.")
+        await send_and_store(chat_id, "Неверно.")
 
     users[chat_id]["question_index"] += 1
     await send_question(chat_id)
