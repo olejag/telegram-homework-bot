@@ -91,9 +91,15 @@ async def delete_last_bot_message(chat_id: int):
 
 async def send_and_store(chat_id: int, text: str, reply_markup=None):
     ensure_user(chat_id)
-    await delete_last_bot_message(chat_id)
+
+    old_message_id = users[chat_id].get("last_bot_message_id")
+
     msg = await bot.send_message(chat_id, text, reply_markup=reply_markup)
     users[chat_id]["last_bot_message_id"] = msg.message_id
+
+    if old_message_id and old_message_id != msg.message_id:
+        await delete_message_safe(chat_id, old_message_id)
+
     return msg
 
 
@@ -253,16 +259,16 @@ async def start_handler(message: Message):
         "last_menu": "main",
     })
 
-    try:
-        await message.delete()
-    except:
-        pass
-
     await send_and_store(
         message.chat.id,
         "Привет! Я бот для проверки домашнего задания😁",
         reply_markup=main_menu()
     )
+
+    try:
+        await message.delete()
+    except:
+        pass
 
 
 @dp.callback_query(F.data == "probnik")
@@ -278,12 +284,15 @@ async def probnik_handler(callback: CallbackQuery):
     users[chat_id]["mode"] = "probnik"
     users[chat_id]["last_menu"] = "main"
 
-    await delete_callback_message(callback)
-    await send_and_store(
+    new_msg = await send_and_store(
         chat_id,
         "Введи код варианта:",
         reply_markup=probnik_back_menu()
     )
+
+    if callback.message.message_id != new_msg.message_id:
+        await delete_callback_message(callback)
+
     await callback.answer()
 
 
@@ -304,12 +313,15 @@ async def main_menu_handler(callback: CallbackQuery):
     users[chat_id]["score"] = 0
     users[chat_id]["answers"] = []
 
-    await delete_callback_message(callback)
-    await send_and_store(
+    new_msg = await send_and_store(
         chat_id,
         "Главное меню:",
         reply_markup=main_menu()
     )
+
+    if callback.message.message_id != new_msg.message_id:
+        await delete_callback_message(callback)
+
     await callback.answer()
 
 
@@ -326,12 +338,15 @@ async def choose_hw_handler(callback: CallbackQuery):
     users[chat_id]["last_menu"] = "choose_hw"
     users[chat_id]["mode"] = "menu"
 
-    await delete_callback_message(callback)
-    await send_and_store(
+    new_msg = await send_and_store(
         chat_id,
         "Выбери нужное ДЗ:",
         reply_markup=homework_menu("start_hw", "main_menu")
     )
+
+    if callback.message.message_id != new_msg.message_id:
+        await delete_callback_message(callback)
+
     await callback.answer()
 
 
@@ -348,12 +363,15 @@ async def theory_menu_handler(callback: CallbackQuery):
     users[chat_id]["last_menu"] = "theory_menu"
     users[chat_id]["mode"] = "menu"
 
-    await delete_callback_message(callback)
-    await send_and_store(
+    new_msg = await send_and_store(
         chat_id,
         "Выбери задание:",
         reply_markup=theory_menu_kb()
     )
+
+    if callback.message.message_id != new_msg.message_id:
+        await delete_callback_message(callback)
+
     await callback.answer()
 
 
@@ -375,12 +393,15 @@ async def theory_handler(callback: CallbackQuery):
     users[chat_id]["last_menu"] = "theory_view"
     users[chat_id]["mode"] = "menu"
 
-    await delete_callback_message(callback)
-    await send_and_store(
+    new_msg = await send_and_store(
         chat_id,
         theory_tasks[t_id]["text"],
         reply_markup=theory_back_menu()
     )
+
+    if callback.message.message_id != new_msg.message_id:
+        await delete_callback_message(callback)
+
     await callback.answer()
 
 
@@ -404,8 +425,8 @@ async def start_hw_handler(callback: CallbackQuery):
         "last_menu": "choose_hw",
     })
 
-    await delete_callback_message(callback)
     await send_question(chat_id)
+    await delete_callback_message(callback)
     await callback.answer()
 
 
@@ -420,12 +441,16 @@ async def quiz_back_handler(callback: CallbackQuery):
 
     if users[chat_id].get("mode") != "quiz":
         await clear_quiz_and_probnik_messages(chat_id)
-        await delete_callback_message(callback)
-        await send_and_store(
+
+        new_msg = await send_and_store(
             chat_id,
             "Главное меню:",
             reply_markup=main_menu()
         )
+
+        if callback.message.message_id != new_msg.message_id:
+            await delete_callback_message(callback)
+
         await callback.answer()
         return
 
@@ -462,6 +487,7 @@ async def quiz_back_handler(callback: CallbackQuery):
             "mode": "menu",
             "last_menu": "main",
         })
+
         await send_and_store(
             chat_id,
             "Ты вернулся в главное меню:",
