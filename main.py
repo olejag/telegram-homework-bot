@@ -479,9 +479,17 @@ async def answer_handler(message: Message):
         await delete_last_bot_message(chat_id)
 
         if code in probnik_codes:
-            await send_history_message(chat_id, f"Вот твой вариант:\n{probnik_codes[code]}")
+            await send_history_message(
+                chat_id,
+                f"Вот твой вариант:\n{probnik_codes[code]}",
+                reply_markup=probnik_back_menu()
+            )
         else:
-            await send_history_message(chat_id, "Неверный код❌")
+            await send_history_message(
+                chat_id,
+                "Неверный код❌",
+                reply_markup=probnik_back_menu()
+            )
 
         users[chat_id]["mode"] = "menu"
         users[chat_id]["last_bot_message_id"] = None
