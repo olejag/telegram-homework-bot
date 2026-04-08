@@ -36,8 +36,8 @@ probnik_codes = {
 }
 
 ALLOWED_USERS = {
-    123456789,
-    987654321,
+    @whyrine,
+    @love_werrmv,
 }
 
 users = {}
@@ -53,13 +53,14 @@ def ensure_user(chat_id: int):
             "hw": None,
             "question_index": 0,
             "score": 0,
+            "answers": [],
             "mode": "menu",
             "last_menu": "main",
             "last_bot_message_id": None,
         }
 
 
-async def delete_message_safe(chat_id: int, message_id: int | None):
+async def delete_message_safe(chat_id: int, message_id):
     if not message_id:
         return
     try:
@@ -88,6 +89,17 @@ async def delete_callback_message(callback: CallbackQuery):
         await callback.message.delete()
     except:
         pass
+
+
+def calculate_score(hw_id: str, answers: list) -> int:
+    hw = homeworks[hw_id]
+    score = 0
+    for i, user_answer in enumerate(answers):
+        if i < len(hw["questions"]):
+            correct_answer = hw["questions"][i]["answer"].strip().lower()
+            if user_answer.strip().lower() == correct_answer:
+                score += 1
+    return score
 
 
 def main_menu():
@@ -129,6 +141,7 @@ async def send_question(chat_id: int):
     index = user["question_index"]
 
     if index >= len(hw["questions"]):
+        user["score"] = calculate_score(user["hw"], user["answers"])
         await send_and_store(
             chat_id,
             f"Твой результат: правильно {user['score']}/{len(hw['questions'])}",
@@ -138,6 +151,7 @@ async def send_question(chat_id: int):
         users[chat_id]["hw"] = None
         users[chat_id]["question_index"] = 0
         users[chat_id]["score"] = 0
+        users[chat_id]["answers"] = []
         users[chat_id]["last_menu"] = "main"
         return
 
@@ -151,6 +165,8 @@ async def send_question(chat_id: int):
 
 @dp.message(CommandStart())
 async def start_handler(message: Message):
+    await message.answer(f"Твой ID: {message.from_user.id}")
+
     if not is_allowed(message.from_user.id):
         await message.answer("У тебя нет доступа к этому боту.")
         return
@@ -160,6 +176,7 @@ async def start_handler(message: Message):
         "hw": None,
         "question_index": 0,
         "score": 0,
+        "answers": [],
         "mode": "menu",
         "last_menu": "main",
     })
@@ -205,6 +222,7 @@ async def main_menu_handler(callback: CallbackQuery):
     users[chat_id]["hw"] = None
     users[chat_id]["question_index"] = 0
     users[chat_id]["score"] = 0
+    users[chat_id]["answers"] = []
 
     await delete_callback_message(callback)
     await send_and_store(
@@ -292,12 +310,12 @@ async def start_hw_handler(callback: CallbackQuery):
         "hw": hw_id,
         "question_index": 0,
         "score": 0,
+        "answers": [],
         "mode": "quiz",
         "last_menu": "choose_hw",
     })
 
     await delete_callback_message(callback)
-    await send_and_store(chat_id, f"{homeworks[hw_id]['title']}")
     await send_question(chat_id)
     await callback.answer()
 
@@ -322,18 +340,20 @@ async def quiz_back_handler(callback: CallbackQuery):
         return
 
     user = users[chat_id]
-
     await delete_callback_message(callback)
 
     if user["question_index"] > 0:
         user["question_index"] -= 1
-        await send_and_store(chat_id, "Возвращаемся к предыдущему вопросу:")
+        if len(user["answers"]) > user["question_index"]:
+            user["answers"].pop()
+        user["score"] = calculate_score(user["hw"], user["answers"])
         await send_question(chat_id)
     else:
         users[chat_id].update({
             "hw": None,
             "question_index": 0,
             "score": 0,
+            "answers": [],
             "mode": "menu",
             "last_menu": "main",
         })
@@ -400,11 +420,17 @@ async def answer_handler(message: Message):
     user_answer = message.text.strip().lower()
     correct_answer = hw["questions"][index]["answer"].strip().lower()
 
+    if len(user["answers"]) == index:
+        user["answers"].append(user_answer)
+    else:
+        user["answers"][index] = user_answer
+
+    user["score"] = calculate_score(user["hw"], user["answers"])
+
     if user_answer == correct_answer:
-        users[chat_id]["score"] += 1
         await send_and_store(chat_id, "Верно!✅")
     else:
-        await send_and_store(chat_id, "Неверно.")
+        await send_and_store(chat_id, "Неверно❌.")
 
     users[chat_id]["question_index"] += 1
     await send_question(chat_id)
