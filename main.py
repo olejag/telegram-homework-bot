@@ -30,6 +30,11 @@ homeworks = {
     },
 }
 
+probnik_codes = {
+    "123": "https://education.yandex.ru/ege/inf/variants/807f4d28-0ff0-4840-bb3c-409fea366ac1/task/1",
+    "444": "https://kompege.ru/variant?kim=25058419",
+}
+
 users = {}
 
 
@@ -37,6 +42,7 @@ def main_menu():
     kb = InlineKeyboardBuilder()
     kb.button(text="📚 Выбрать ДЗ", callback_data="choose_hw")
     kb.button(text="📖 Теория", callback_data="theory_menu")
+    kb.button(text="🧪 Пробники", callback_data="probnik")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -102,6 +108,15 @@ async def start_handler(message: Message):
         "Привет! Я бот для проверки домашнего задания😁",
         reply_markup=main_menu()
     )
+
+@dp.callback_query(F.data == "probnik")
+async def probnik_handler(callback: CallbackQuery):
+    users[callback.message.chat.id]["mode"] = "probnik"
+
+    await callback.message.answer(
+        "Введи код варианта:"
+    )
+    await callback.answer()
 
 
 @dp.callback_query(F.data == "main_menu")
@@ -247,6 +262,17 @@ async def quiz_back_handler(callback: CallbackQuery):
 @dp.message()
 async def answer_handler(message: Message):
     chat_id = message.chat.id
+    if users[chat_id].get("mode") == "probnik":
+        code = message.text.strip()
+
+        if code in probnik_codes:
+            await message.answer(f"Вот твой вариант:\n{probnik_codes[code]}")
+        else:
+            await message.answer("Неверный код❌")
+
+        users[chat_id]["mode"] = "menu"
+        await message.answer("Возвращаю в меню:", reply_markup=main_menu())
+        return
 
     if chat_id not in users or users[chat_id].get("mode") != "quiz":
         await message.answer("Ты по моему по кнопке не попал🤔(напиши /start)")
