@@ -165,16 +165,15 @@ def homework_menu(prefix: str, back_callback: str = "main_menu"):
     kb = InlineKeyboardBuilder()
     for hw_id, hw_data in homeworks.items():
         kb.button(text=hw_data["title"], callback_data=f"{prefix}:{hw_id}")
-
     kb.button(text="⬅️ Назад", callback_data=back_callback)
     kb.adjust(1)
     return kb.as_markup()
+
 
 def theory_menu_kb():
     kb = InlineKeyboardBuilder()
     for t_id, t_data in theory_tasks.items():
         kb.button(text=t_data["title"], callback_data=f"theory:{t_id}")
-
     kb.button(text="⬅️ Назад", callback_data="main_menu")
     kb.adjust(1)
     return kb.as_markup()
@@ -346,12 +345,16 @@ async def theory_menu_handler(callback: CallbackQuery):
     ensure_user(chat_id)
     await clear_quiz_and_probnik_messages(chat_id)
 
+    users[chat_id]["last_menu"] = "theory_menu"
+    users[chat_id]["mode"] = "menu"
+
     await delete_callback_message(callback)
     await send_and_store(
         chat_id,
         "Выбери задание:",
         reply_markup=theory_menu_kb()
     )
+    await callback.answer()
 
 
 @dp.callback_query(F.data.startswith("theory:"))
@@ -365,29 +368,17 @@ async def theory_handler(callback: CallbackQuery):
     await clear_quiz_and_probnik_messages(chat_id)
 
     t_id = callback.data.split(":")[1]
-    text = theory_tasks[t_id]["text"]
+    if t_id not in theory_tasks:
+        await callback.answer("Такого задания нет", show_alert=True)
+        return
 
-    await delete_callback_message(callback)
-    await send_and_store(
-        chat_id,
-        text,
-        reply_markup=theory_back_menu()
-    )
-
-
-    chat_id = callback.message.chat.id
-    ensure_user(chat_id)
-    await clear_quiz_and_probnik_messages(chat_id)
-
-    hw_id = callback.data.split(":")[1]
-    theory_text = homeworks[hw_id]["theory"]
     users[chat_id]["last_menu"] = "theory_view"
     users[chat_id]["mode"] = "menu"
 
     await delete_callback_message(callback)
     await send_and_store(
         chat_id,
-        theory_text,
+        theory_tasks[t_id]["text"],
         reply_markup=theory_back_menu()
     )
     await callback.answer()
