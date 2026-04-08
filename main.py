@@ -11,8 +11,8 @@ dp = Dispatcher()
 
 homeworks = {
     "hw1": {
-        "title": "Домашняя работа №1",
-        "theory": "Теория для ДЗ №1:\nAddition basics.",
+        "title": "Задание №2",
+        "theory": "Теория для Задания №2:\nhttps://education.yandex.ru/ege/inf/article/123-kak-analiticheski-reshit-zadanie-2-iz_ege_po_informatike",
         "questions": [
             {"question": "Ответ на №1:", "answer": "1"},
             {"question": "Ответ на №2:", "answer": "1"},
@@ -20,8 +20,8 @@ homeworks = {
         ],
     },
     "hw2": {
-        "title": "Домашняя работа №2",
-        "theory": "Теория для ДЗ №2:\nMultiplication basics.",
+        "title": "Задание №5",
+        "theory": "Теория для Задания №5:\nhttps://education.yandex.ru/ege/inf/article/158-programmnoe-reshenie-zadaniia-5-na-iazike-python",
         "questions": [
             {"question": "Ответ на №1:", "answer": "1"},
             {"question": "Ответ на №2:", "answer": "1"},
