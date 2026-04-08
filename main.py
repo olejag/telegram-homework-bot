@@ -11,8 +11,7 @@ dp = Dispatcher()
 
 homeworks = {
     "hw1": {
-        "title": "Задание №2",
-        "theory": "Теория для Задания №2:\nhttps://education.yandex.ru/ege/inf/article/123-kak-analiticheski-reshit-zadanie-2-iz_ege_po_informatike",
+        "title": "Домашняя работа №1",
         "questions": [
             {"question": "Ответ на №1:", "answer": "1"},
             {"question": "Ответ на №2:", "answer": "1"},
@@ -20,13 +19,23 @@ homeworks = {
         ],
     },
     "hw2": {
-        "title": "Задание №5",
-        "theory": "Теория для Задания №5:\nhttps://education.yandex.ru/ege/inf/article/158-programmnoe-reshenie-zadaniia-5-na-iazike-python",
+        "title": "Домашняя работа №2",
         "questions": [
             {"question": "Ответ на №1:", "answer": "1"},
             {"question": "Ответ на №2:", "answer": "1"},
             {"question": "Ответ на №3:", "answer": "1"},
         ],
+    },
+}
+
+theory_tasks = {
+    "t1": {
+        "title": "Задание №2",
+        "text": "Теория:\nhttps://education.yandex.ru/ege/inf/article/123-kak-analiticheski-reshit-zadanie-2-iz_ege_po_informatike",
+    },
+    "t2": {
+        "title": "Задание №5",
+        "text": "Теория:\nhttps://education.yandex.ru/ege/inf/article/158-programmnoe-reshenie-zadaniia-5-na-iazike-python",
     },
 }
 
@@ -155,7 +164,17 @@ def homework_menu(prefix: str, back_callback: str = "main_menu"):
     kb = InlineKeyboardBuilder()
     for hw_id, hw_data in homeworks.items():
         kb.button(text=hw_data["title"], callback_data=f"{prefix}:{hw_id}")
+
     kb.button(text="⬅️ Назад", callback_data=back_callback)
+    kb.adjust(1)
+    return kb.as_markup()
+
+def theory_menu_kb():
+    kb = InlineKeyboardBuilder()
+    for t_id, t_data in theory_tasks.items():
+        kb.button(text=t_data["title"], callback_data=f"theory:{t_id}")
+
+    kb.button(text="⬅️ Назад", callback_data="main_menu")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -326,19 +345,54 @@ async def theory_menu_handler(callback: CallbackQuery):
     ensure_user(chat_id)
     await clear_quiz_and_probnik_messages(chat_id)
 
+    await delete_callback_message(callback)
+    await send_and_store(
+        chat_id,
+        "Выбери задание:",
+        reply_markup=theory_menu_kb()
+    )
+    await callback.answer()
+async def theory_menu_handler(callback: CallbackQuery):
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+    await clear_quiz_and_probnik_messages(chat_id)
+
     users[chat_id]["last_menu"] = "theory_menu"
     users[chat_id]["mode"] = "menu"
 
     await delete_callback_message(callback)
     await send_and_store(
         chat_id,
-        "Выбери по какому ДЗ тебе нужна теория:",
+        "Выбери по какому заданию ЕГЭ тебе нужна теория:",
         reply_markup=homework_menu("theory", "main_menu")
     )
     await callback.answer()
 
 
 @dp.callback_query(F.data.startswith("theory:"))
+async def theory_handler(callback: CallbackQuery):
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+    await clear_quiz_and_probnik_messages(chat_id)
+
+    t_id = callback.data.split(":")[1]
+    text = theory_tasks[t_id]["text"]
+
+    await delete_callback_message(callback)
+    await send_and_store(
+        chat_id,
+        text,
+        reply_markup=theory_back_menu()
+    )
+    await callback.answer()
 async def theory_handler(callback: CallbackQuery):
     if not is_allowed(callback.from_user.id):
         await callback.answer("Нет доступа", show_alert=True)
