@@ -47,6 +47,7 @@ probnik_codes = {
 ALLOWED_USERS = {
     843617286,
     604495331,
+    5554003912,
 }
 
 users = {}
