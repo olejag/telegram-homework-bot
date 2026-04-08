@@ -36,8 +36,8 @@ probnik_codes = {
 }
 
 ALLOWED_USERS = {
-    12,
-    123,
+    23,
+    604495331,
 }
 
 users = {}
@@ -165,10 +165,14 @@ async def send_question(chat_id: int):
 
 @dp.message(CommandStart())
 async def start_handler(message: Message):
-    await message.answer(f"Твой ID: {message.from_user.id}")
+    try:
+        await message.delete()
+    except:
+        pass
 
     if not is_allowed(message.from_user.id):
-        await message.answer("У тебя нет доступа к этому боту.")
+        await bot.send_message(message.chat.id, f"Твой ID: {message.from_user.id}")
+        return
 
     ensure_user(message.chat.id)
     users[message.chat.id].update({
@@ -179,11 +183,6 @@ async def start_handler(message: Message):
         "mode": "menu",
         "last_menu": "main",
     })
-
-    try:
-        await message.delete()
-    except:
-        pass
 
     await send_and_store(
         message.chat.id,
@@ -367,8 +366,10 @@ async def quiz_back_handler(callback: CallbackQuery):
 
 @dp.message()
 async def answer_handler(message: Message):
+    if message.text and message.text.startswith("/"):
+        return
+
     if not is_allowed(message.from_user.id):
-        await message.answer("У тебя нет доступа к этому боту.")
         return
 
     chat_id = message.chat.id
