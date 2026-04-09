@@ -437,6 +437,8 @@ async def start_hw_handler(callback: CallbackQuery):
     await clear_quiz_and_probnik_messages(chat_id)
 
     hw_id = callback.data.split(":")[1]
+    hw = homeworks[hw_id]
+
     users[chat_id].update({
         "hw": hw_id,
         "question_index": 0,
@@ -445,6 +447,12 @@ async def start_hw_handler(callback: CallbackQuery):
         "mode": "quiz",
         "last_menu": "choose_hw",
     })
+
+    if hw.get("file_link"):
+        await send_history_message(
+            chat_id,
+            f"📄 Ссылка на домашнюю работу:\n{hw['file_link']}"
+        )
 
     await send_question(chat_id)
     await delete_callback_message(callback)
