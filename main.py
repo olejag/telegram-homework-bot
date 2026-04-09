@@ -140,6 +140,7 @@ def main_menu():
     kb.button(text="📚 Выбрать ДЗ", callback_data="choose_hw")
     kb.button(text="📖 Теория", callback_data="theory_menu")
     kb.button(text="🧪 Пробники", callback_data="probnik")
+    kb.button(text="📘 Как пользоваться", callback_data="help")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -149,6 +150,12 @@ def homework_menu(prefix: str, back_callback: str = "main_menu"):
     for hw_id, hw_data in homeworks.items():
         kb.button(text=hw_data["title"], callback_data=f"{prefix}:{hw_id}")
     kb.button(text="⬅️ Назад", callback_data=back_callback)
+    kb.adjust(1)
+    return kb.as_markup()
+
+def back_kb_to_main():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="⬅️ Назад", callback_data="main_menu")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -265,6 +272,43 @@ async def probnik_handler(callback: CallbackQuery):
         chat_id,
         "Введи код варианта:",
         reply_markup=probnik_back_menu()
+    )
+
+    if callback.message.message_id != new_msg.message_id:
+        await delete_callback_message(callback)
+
+    await callback.answer()
+
+@dp.callback_query(F.data == "help")
+async def help_handler(callback: CallbackQuery):
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+    await clear_quiz_and_probnik_messages(chat_id)
+
+    users[chat_id]["mode"] = "menu"
+    users[chat_id]["last_menu"] = "help"
+
+    help_text = (
+        "📘 Как пользоваться ботом:\n\n"
+        "📚 Выбрать ДЗ — проходишь задания по порядку\n"
+        "📖 Теория — смотришь разборы\n"
+        "🧪 Пробники — вводишь код варианта\n\n"
+        "Во время ДЗ:\n"
+        "— вводи ответы текстом\n"
+        "— можно вернуться назад\n"
+        "— в конце будет результат\n\n"
+        "⬅️ Кнопка назад возвращает в меню\n\n"
+        "Удачи! 🚀"
+    )
+
+    new_msg = await send_and_store(
+        chat_id,
+        help_text,
+        reply_markup=back_kb_to_main()
     )
 
     if callback.message.message_id != new_msg.message_id:
