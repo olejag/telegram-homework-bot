@@ -23,10 +23,25 @@
   },
   "hw2": {
     "title": "Домашняя работа №2",
+    "file_link": "https://s4.api.pdfcandy.com/7c73986b2a34c24c/%D0%94%D0%BE%D0%BC%D0%B0%D1%88%D0%BD%D1%8F%D1%8F%20%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D0%B0%20%E2%84%962.pdf?dl",
     "questions": [
-      { "question": "Ответ на №1:", "answer": "1" },
-      { "question": "Ответ на №2:", "answer": "1" },
-      { "question": "Ответ на №3:", "answer": "1" }
+      { "question": "!!!Повторение!!!\nОтвет на №1:", "answer": "16" },
+      { "question": "Ответ на №2:", "answer": "15" },
+      { "question": "Ответ на №3:", "answer": "74" },
+      { "question": "Основная часть\nОтвет на №1:", "answer": "cab" },
+      { "question": "Ответ на №2:", "answer": "yxz" },
+      { "question": "Ответ на №3:", "answer": "zwxy" },
+      { "question": "Ответ на №4:", "answer": "wyzx" },
+      { "question": "Ответ на №5:", "answer": "zwyx" },
+      { "question": "Ответ на №6:", "answer": "wyxz" },
+      { "question": "Ответ на №7:", "answer": "yxwz" },
+      { "question": "Ответ на №8:", "answer": "zyxw" },
+      { "question": "Ответ на №9:", "answer": "xwzy" },
+      { "question": "Ответ на №10:", "answer": "wxyz" },
+      { "question": "Ответ на №11:", "answer": "xzyw" },
+      { "question": "Ответ на №12:", "answer": "yzwx" },
+      { "question": "Ответ на №13:", "answer": "wyxz" }
+
     ]
   },
   "hw3": {
