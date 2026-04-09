@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 import asyncio
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, CallbackQuery
@@ -6,49 +8,24 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 TOKEN = "8364336026:AAG98jesPl2QOilOqUxJZ2nyQlagc7yoQkc"
 
+
+
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
-homeworks = {
-    "hw1": {
-        "title": "Домашняя работа №1",
-        "questions": [
-            {"question": "Ответ на №1:", "answer": "1"},
-            {"question": "Ответ на №2:", "answer": "1"},
-            {"question": "Ответ на №3:", "answer": "1"},
-        ],
-    },
-    "hw2": {
-        "title": "Домашняя работа №2",
-        "questions": [
-            {"question": "Ответ на №1:", "answer": "1"},
-            {"question": "Ответ на №2:", "answer": "1"},
-            {"question": "Ответ на №3:", "answer": "1"},
-        ],
-    },
-}
+BASE_DIR = Path(__file__).resolve().parent
+DATA_DIR = BASE_DIR / "data"
 
-theory_tasks = {
-    "t1": {
-        "title": "Задание №2",
-        "text": "Теория:\nhttps://education.yandex.ru/ege/inf/article/123-kak-analiticheski-reshit-zadanie-2-iz_ege_po_informatike",
-    },
-    "t2": {
-        "title": "Задание №5",
-        "text": "Теория:\nhttps://education.yandex.ru/ege/inf/article/158-programmnoe-reshenie-zadaniia-5-na-iazike-python",
-    },
-}
 
-probnik_codes = {
-    "123": "https://education.yandex.ru/ege/inf/variants/807f4d28-0ff0-4840-bb3c-409fea366ac1/task/1",
-    "444": "https://kompege.ru/variant?kim=25058419",
-}
+def load_json(filename):
+    with open(DATA_DIR / filename, "r", encoding="utf-8") as f:
+        return json.load(f)
 
-ALLOWED_USERS = {
-    843617286,
-    604495331,
-    5554003912,
-}
+
+homeworks = load_json("homeworks.json")
+theory_tasks = load_json("theory.json")
+probnik_codes = load_json("probniks.json")
+ALLOWED_USERS = set(load_json("allowed_users.json")["users"])
 
 users = {}
 
@@ -582,3 +559,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+print(homeworks)
+print(theory_tasks)

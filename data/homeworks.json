@@ -1,0 +1,43 @@
+{
+  "hw1": {
+    "title": "Домашняя работа №1",
+    "questions": [
+      { "question": "Ответ на №1:", "answer": "1" },
+      { "question": "Ответ на №2:", "answer": "1" },
+      { "question": "Ответ на №3:", "answer": "1" }
+    ]
+  },
+  "hw2": {
+    "title": "Домашняя работа №2",
+    "questions": [
+      { "question": "Ответ на №1:", "answer": "1" },
+      { "question": "Ответ на №2:", "answer": "1" },
+      { "question": "Ответ на №3:", "answer": "1" }
+    ]
+  },
+  "hw3": {
+    "title": "Домашняя работа №3",
+    "questions": [
+      { "question": "Ответ на №1:", "answer": "1" },
+      { "question": "Ответ на №2:", "answer": "1" },
+      { "question": "Ответ на №3:", "answer": "1" }
+    ]
+  },
+  "hw4": {
+    "title": "Домашняя работа №4",
+    "questions": [
+      { "question": "Ответ на №1:", "answer": "1" },
+      { "question": "Ответ на №2:", "answer": "1" },
+      { "question": "Ответ на №3:", "answer": "1" },
+      { "question": "Ответ на №4:", "answer": "1" },
+      { "question": "Ответ на №5:", "answer": "1" },
+      { "question": "Ответ на №6:", "answer": "1" },
+      { "question": "Ответ на №7:", "answer": "1" },
+      { "question": "Ответ на №8:", "answer": "1" },
+      { "question": "Ответ на №9:", "answer": "1" },
+      { "question": "Ответ на №10:", "answer": "1" },
+      { "question": "Ответ на №11:", "answer": "1" },
+      { "question": "Ответ на №12:", "answer": "1" }
+    ]
+  }
+}
