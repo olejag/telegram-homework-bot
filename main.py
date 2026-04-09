@@ -5,6 +5,8 @@ from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from aiogram.types import FSInputFile
+
 
 TOKEN = "8364336026:AAG98jesPl2QOilOqUxJZ2nyQlagc7yoQkc"
 
@@ -292,22 +294,17 @@ async def help_handler(callback: CallbackQuery):
     users[chat_id]["mode"] = "menu"
     users[chat_id]["last_menu"] = "help"
 
-    help_text = (
-        "📘 Как пользоваться ботом:\n\n"
-        "📚 Выбрать ДЗ — проходишь задания по порядку\n"
-        "📖 Теория — смотришь разборы\n"
-        "🧪 Пробники — вводишь код варианта\n\n"
-        "Во время ДЗ:\n"
-        "— вводи ответы текстом\n"
-        "— можно вернуться назад\n"
-        "— в конце будет результат\n\n"
-        "⬅️ Кнопка назад возвращает в меню\n\n"
-        "Удачи! 🚀"
+    photo = FSInputFile("data/guide.png")
+
+    await bot.send_photo(
+        chat_id=chat_id,
+        photo=photo,
+        caption="📘 Как пользоваться ботом"
     )
 
     new_msg = await send_and_store(
         chat_id,
-        help_text,
+        "Если что — нажми «Назад» 👇",
         reply_markup=back_kb_to_main()
     )
 
