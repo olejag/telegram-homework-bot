@@ -291,13 +291,18 @@ async def help_handler(callback: CallbackQuery):
     ensure_user(chat_id)
     await clear_quiz_and_probnik_messages(chat_id)
 
+    users[chat_id]["mode"] = "menu"
+    users[chat_id]["last_menu"] = "help"
+
     file = FSInputFile("data/guide.pdf")
 
-    await bot.send_document(
+    msg = await bot.send_document(
         chat_id=chat_id,
         document=file,
         caption="📘 Руководство по боту:"
     )
+
+    users[chat_id]["history_message_ids"].append(msg.message_id)
 
     new_msg = await send_and_store(
         chat_id,
