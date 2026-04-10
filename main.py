@@ -304,6 +304,11 @@ async def help_handler(callback: CallbackQuery):
 
     users[chat_id]["history_message_ids"].append(msg.message_id)
 
+    await send_history_message(
+        chat_id,
+        "❓ Остались вопросы?\nНапиши мне: @kob_ww"
+    )
+
     new_msg = await send_and_store(
         chat_id,
         "Если что — нажми «Назад» 👇",
