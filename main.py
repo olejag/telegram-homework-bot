@@ -509,7 +509,6 @@ async def start_hw_handler(callback: CallbackQuery):
     await delete_callback_message(callback)
     await callback.answer()
 
-
 @dp.callback_query(F.data == "quiz_back")
 async def quiz_back_handler(callback: CallbackQuery):
     if not is_allowed(callback.from_user.id):
@@ -519,6 +518,7 @@ async def quiz_back_handler(callback: CallbackQuery):
     chat_id = callback.message.chat.id
     ensure_user(chat_id)
 
+    # Если пользователь не в режиме quiz — просто вернуть в главное меню
     if users[chat_id].get("mode") != "quiz":
         await clear_quiz_and_probnik_messages(chat_id)
 
@@ -534,47 +534,31 @@ async def quiz_back_handler(callback: CallbackQuery):
         await callback.answer()
         return
 
-    user = users[chat_id]
-    await delete_callback_message(callback)
+    # Если пользователь в ДЗ — очищаем все сообщения этого ДЗ
+    await clear_quiz_and_probnik_messages(chat_id)
 
-    if user["question_index"] > 0:
-        last_index = len(user["history_message_ids"]) - 1
-        if last_index >= 0:
-            await delete_message_safe(chat_id, user["history_message_ids"].pop())
+    users[chat_id].update({
+        "hw": None,
+        "question_index": 0,
+        "score": 0,
+        "answers": [],
+        "mode": "menu",
+        "last_menu": "choose_hw",
+    })
 
-        last_user_index = len(user["user_message_ids"]) - 1
-        if last_user_index >= 0:
-            await delete_message_safe(chat_id, user["user_message_ids"].pop())
+    new_msg = await send_and_store(
+        chat_id,
+        "Выбери нужное ДЗ:",
+        reply_markup=homework_menu(chat_id, "start_hw", "main_menu")
+    )
 
-        last_index = len(user["history_message_ids"]) - 1
-        if last_index >= 0:
-            await delete_message_safe(chat_id, user["history_message_ids"].pop())
-
-        user["question_index"] -= 1
-
-        if len(user["answers"]) > user["question_index"]:
-            user["answers"].pop()
-
-        user["score"] = calculate_score(user["hw"], user["answers"])
-        await send_question(chat_id)
-    else:
-        await clear_quiz_and_probnik_messages(chat_id)
-        users[chat_id].update({
-            "hw": None,
-            "question_index": 0,
-            "score": 0,
-            "answers": [],
-            "mode": "menu",
-            "last_menu": "main",
-        })
-
-        await send_and_store(
-            chat_id,
-            "Ты вернулся в главное меню:",
-            reply_markup=main_menu()
-        )
+    if callback.message.message_id != new_msg.message_id:
+        await delete_callback_message(callback)
 
     await callback.answer()
+
+
+
 
 
 @dp.message()
