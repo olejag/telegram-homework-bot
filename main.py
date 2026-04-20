@@ -8,7 +8,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import FSInputFile
 
 
-TOKEN = "8364336026:AAG98jesPl2QOilOqUxJZ2nyQlagc7yoQkc"
+TOKEN = "8364336026:AAGMeMb8gkB3xdQSADTKbwJ4oezXKtXwuTs"
 
 
 
