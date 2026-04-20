@@ -158,7 +158,10 @@ def main_menu():
 
 def homework_menu(chat_id: int, prefix: str, back_callback: str = "main_menu"):
     kb = InlineKeyboardBuilder()
-    exam = users[chat_id]["exam"]
+    exam = users[chat_id].get("exam")
+
+    if not exam:
+        raise ValueError(f"exam is None for chat_id={chat_id}, user={users.get(chat_id)}")
 
     for hw_id, hw_data in homeworks[exam].items():
         kb.button(text=hw_data["title"], callback_data=f"{prefix}:{hw_id}")
@@ -176,7 +179,10 @@ def back_kb_to_main():
 
 def theory_menu_kb(chat_id: int):
     kb = InlineKeyboardBuilder()
-    exam = users[chat_id]["exam"]
+    exam = users[chat_id].get("exam")
+
+    if not exam:
+        raise ValueError(f"exam is None for chat_id={chat_id}, user={users.get(chat_id)}")
 
     for t_id, t_data in theory_tasks[exam].items():
         kb.button(text=t_data["title"], callback_data=f"theory:{t_id}")
