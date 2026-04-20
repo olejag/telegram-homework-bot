@@ -1,6 +1,7 @@
 import json
 from pathlib import Path
 import asyncio
+import os
 from aiogram import Bot, Dispatcher, F
 from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
@@ -8,7 +9,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import FSInputFile
 
 
-TOKEN = "8364336026:AAGMeMb8gkB3xdQSADTKbwJ4oezXKtXwuTs"
+TOKEN = os.getenv("8364336026:AAF8URPzsw1OLmBfeRiRFGZIxQVNb4nMaAM")
 
 
 
