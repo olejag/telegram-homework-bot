@@ -70,7 +70,7 @@ async def delete_message_safe(chat_id: int, message_id):
         return
     try:
         await bot.delete_message(chat_id, message_id)
-    except:
+    except Exception:
         pass
 
 
@@ -112,7 +112,7 @@ async def clear_history_messages(chat_id: int):
     for message_id in users[chat_id]["history_message_ids"]:
         try:
             await bot.delete_message(chat_id, message_id)
-        except:
+        except Exception:
             pass
 
     users[chat_id]["history_message_ids"] = []
@@ -124,7 +124,7 @@ async def clear_user_messages(chat_id: int):
     for message_id in users[chat_id]["user_message_ids"]:
         try:
             await bot.delete_message(chat_id, message_id)
-        except:
+        except Exception:
             pass
 
     users[chat_id]["user_message_ids"] = []
@@ -139,22 +139,11 @@ async def clear_quiz_and_probnik_messages(chat_id: int):
 async def delete_callback_message(callback: CallbackQuery):
     try:
         await callback.message.delete()
-    except:
+    except Exception:
         pass
 
 
-def calculate_score(chat_id: int, hw_id: str, answers: list) -> int:
-    exam = users[chat_id]["exam"]
-    hw = homeworks[exam][hw_id]
-    score = 0
 
-    for i, user_answer in enumerate(answers):
-        if i < len(hw.get("questions", [])):
-            correct_answer = hw["questions"][i]["answer"].strip().lower()
-            if user_answer.strip().lower() == correct_answer:
-                score += 1
-
-    return score
 
 
 def main_menu():
@@ -204,11 +193,7 @@ def theory_back_menu():
     return kb.as_markup()
 
 
-def quiz_back_menu():
-    kb = InlineKeyboardBuilder()
-    kb.button(text="⬅️ Назад", callback_data="quiz_back")
-    kb.adjust(1)
-    return kb.as_markup()
+
 
 
 def probnik_back_menu():
@@ -216,38 +201,6 @@ def probnik_back_menu():
     kb.button(text="⬅️ Назад", callback_data="main_menu")
     kb.adjust(1)
     return kb.as_markup()
-
-
-async def send_question(chat_id: int):
-    ensure_user(chat_id)
-    user = users[chat_id]
-    exam = users[chat_id]["exam"]
-    hw = homeworks[exam][user["hw"]]
-    index = user["question_index"]
-
-    if index >= len(hw["questions"]):
-        user["score"] = calculate_score(chat_id, user["hw"], user["answers"])
-        await send_history_message(
-            chat_id,
-            f"Твой результат: правильно {user['score']}/{len(hw['questions'])}",
-            reply_markup=main_menu()
-        )
-        users[chat_id]["mode"] = "menu"
-        users[chat_id]["hw"] = None
-        users[chat_id]["question_index"] = 0
-        users[chat_id]["score"] = 0
-        users[chat_id]["answers"] = []
-        users[chat_id]["last_menu"] = "main"
-        users[chat_id]["last_bot_message_id"] = None
-        return
-
-    question_text = hw["questions"][index]["question"]
-    await send_history_message(
-        chat_id,
-        question_text,
-        reply_markup=quiz_back_menu()
-    )
-    users[chat_id]["last_bot_message_id"] = None
 
 
 
@@ -258,7 +211,7 @@ async def start_handler(message: Message):
     if not is_allowed(message.from_user.id):
         try:
             await message.delete()
-        except:
+        except Exception:
             pass
         await bot.send_message(message.chat.id, f"Твой ID: {message.from_user.id}")
         return
@@ -284,7 +237,7 @@ async def start_handler(message: Message):
 
     try:
         await message.delete()
-    except:
+    except Exception:
         pass
 
 @dp.callback_query(F.data.startswith("exam:"))
@@ -470,8 +423,10 @@ async def theory_handler(callback: CallbackQuery):
     ensure_user(chat_id)
     await clear_quiz_and_probnik_messages(chat_id)
 
+    exam = users[chat_id]["exam"]
     t_id = callback.data.split(":")[1]
-    if t_id not in theory_tasks:
+
+    if t_id not in theory_tasks[exam]:
         await callback.answer("Такого задания нет", show_alert=True)
         return
 
@@ -480,7 +435,7 @@ async def theory_handler(callback: CallbackQuery):
 
     new_msg = await send_and_store(
         chat_id,
-        theory_tasks[t_id]["text"],
+        theory_tasks[exam][t_id]["text"],
         reply_markup=theory_back_menu()
     )
 
@@ -557,55 +512,6 @@ async def hw_back_handler(callback: CallbackQuery):
     await callback.answer()
 
 
-@dp.callback_query(F.data == "quiz_back")
-async def quiz_back_handler(callback: CallbackQuery):
-    if not is_allowed(callback.from_user.id):
-        await callback.answer("Нет доступа", show_alert=True)
-        return
-
-    chat_id = callback.message.chat.id
-    ensure_user(chat_id)
-
-    # Если пользователь не в режиме quiz — просто вернуть в главное меню
-    if users[chat_id].get("mode") != "quiz":
-        await clear_quiz_and_probnik_messages(chat_id)
-
-        new_msg = await send_and_store(
-            chat_id,
-            "Главное меню:",
-            reply_markup=main_menu()
-        )
-
-        if callback.message.message_id != new_msg.message_id:
-            await delete_callback_message(callback)
-
-        await callback.answer()
-        return
-
-    # Если пользователь в ДЗ — очищаем все сообщения этого ДЗ
-    await clear_quiz_and_probnik_messages(chat_id)
-
-    users[chat_id].update({
-        "hw": None,
-        "question_index": 0,
-        "score": 0,
-        "answers": [],
-        "mode": "menu",
-        "last_menu": "choose_hw",
-    })
-
-    new_msg = await send_and_store(
-        chat_id,
-        "Выбери нужное ДЗ:",
-        reply_markup=homework_menu(chat_id, "start_hw", "main_menu")
-    )
-
-    if callback.message.message_id != new_msg.message_id:
-        await delete_callback_message(callback)
-
-    await callback.answer()
-
-
 
 
 
@@ -623,9 +529,9 @@ async def answer_handler(message: Message):
     if not message.text:
         try:
             await message.delete()
-        except:
+        except Exception:
             pass
-        await send_and_store(chat_id, "Пожалуйста, отправь текстовый ответ.")
+        await send_and_store(chat_id, "Пожалуйста, отправь текст.")
         return
 
     if users[chat_id].get("mode") == "probnik":
@@ -633,7 +539,7 @@ async def answer_handler(message: Message):
 
         try:
             await message.delete()
-        except:
+        except Exception:
             pass
 
         await delete_last_bot_message(chat_id)
@@ -655,38 +561,11 @@ async def answer_handler(message: Message):
         users[chat_id]["last_bot_message_id"] = None
         return
 
-    if users[chat_id].get("mode") != "quiz":
-        try:
-            await message.delete()
-        except:
-            pass
-        await send_and_store(chat_id, "Ты по моему по кнопке не попал🤔(напиши /start)")
-        return
+    try:
+        await message.delete()
+    except Exception:
+        pass
 
-    user = users[chat_id]
-    exam = users[chat_id]["exam"]
-    hw = homeworks[exam][user["hw"]]
-    index = user["question_index"]
-
-    users[chat_id]["user_message_ids"].append(message.message_id)
-
-    user_answer = message.text.strip().lower()
-    correct_answer = hw["questions"][index]["answer"].strip().lower()
-
-    if len(user["answers"]) == index:
-        user["answers"].append(user_answer)
-    else:
-        user["answers"][index] = user_answer
-
-    user["score"] = calculate_score(user["hw"], user["answers"])
-
-    if user_answer == correct_answer:
-        await send_history_message(chat_id, "Верно!✅")
-    else:
-        await send_history_message(chat_id, "Неверно❌.")
-
-    users[chat_id]["question_index"] += 1
-    await send_question(chat_id)
 
 
 async def main():
@@ -695,5 +574,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-print(homeworks)
-print(theory_tasks)
