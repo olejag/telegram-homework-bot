@@ -1,0 +1,26 @@
+{
+  "ege": {
+    "1": {
+      "title": "Научись писать код с нуля",
+      "link": "https://stepik.org/course/207789/syllabus"
+    },
+    "2": {
+      "title": "Сайт ФИПИ",
+      "link": " https://ege.fipi.ru/bank/index.php?proj=B9ACA5BBB2E19E434CD6BEC25284C67F"
+    },
+    "3": {
+      "title": "Поляков ЕГЭ",
+      "link": " https://kpolyakov.spb.ru/school/ege.htm"
+    },
+    "4": {
+      "title": "КЕГЭ",
+      "link": "https://kompege.ru/"
+    }
+  },
+  "oge": {
+    "1": {
+      "title": "База ОГЭ Поляков",
+      "link": "https://kpolyakov.spb.ru/school/oge.htm"
+    }
+  }
+}

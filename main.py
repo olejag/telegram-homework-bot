@@ -3,7 +3,7 @@ from pathlib import Path
 import asyncio
 import os
 from aiogram import Bot, Dispatcher, F
-from aiogram.types import Message, CallbackQuery, FSInputFile
+from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
@@ -28,6 +28,7 @@ def load_json(filename):
 homeworks = load_json("homeworks.json")
 theory_tasks = load_json("theory.json")
 probnik_codes = load_json("probniks.json")
+materials = load_json("materials.json")
 ALLOWED_USERS = set(load_json("allowed_users.json")["users"])
 
 users = {}
@@ -72,7 +73,7 @@ def main_menu():
     kb.button(text="📚 Выбрать ДЗ", callback_data="choose_hw")
     kb.button(text="📖 Теория", callback_data="theory_menu")
     kb.button(text="🧪 Пробники", callback_data="probnik")
-    kb.button(text="📘 Как пользоваться", callback_data="help")
+    kb.button(text="📂 Полезные материалы", callback_data="materials_menu")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -94,6 +95,13 @@ def theory_back_menu():
 def probnik_back_menu():
     kb = InlineKeyboardBuilder()
     kb.button(text="⬅️ Назад", callback_data="main_menu")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def materials_back_menu():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="⬅️ Назад", callback_data="materials_menu")
     kb.adjust(1)
     return kb.as_markup()
 
@@ -122,6 +130,21 @@ def theory_menu_kb(chat_id: int):
 
     for t_id, t_data in theory_tasks.get(exam, {}).items():
         kb.button(text=t_data["title"], callback_data=f"theory:{t_id}")
+
+    kb.button(text="⬅️ Назад", callback_data="main_menu")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def materials_menu_kb(chat_id: int):
+    kb = InlineKeyboardBuilder()
+    exam = users[chat_id].get("exam")
+
+    if not exam:
+        return exam_menu()
+
+    for m_id, m_data in materials.get(exam, {}).items():
+        kb.button(text=m_data["title"], callback_data=f"material:{m_id}")
 
     kb.button(text="⬅️ Назад", callback_data="main_menu")
     kb.adjust(1)
@@ -408,6 +431,93 @@ async def theory_handler(callback: CallbackQuery):
     await callback.answer()
 
 
+@dp.callback_query(F.data == "materials_menu")
+async def materials_menu_handler(callback: CallbackQuery):
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+    await clear_quiz_and_probnik_messages(chat_id)
+
+    exam = users[chat_id].get("exam")
+    if not exam:
+        new_msg = await send_and_store(
+            chat_id,
+            "Сначала выбери экзамен:",
+            reply_markup=exam_menu()
+        )
+
+        if callback.message.message_id != new_msg.message_id:
+            await delete_callback_message(callback)
+
+        await callback.answer()
+        return
+
+    users[chat_id]["last_menu"] = "materials_menu"
+    users[chat_id]["mode"] = "menu"
+
+    new_msg = await send_and_store(
+        chat_id,
+        "Выбери материал:",
+        reply_markup=materials_menu_kb(chat_id)
+    )
+
+    if callback.message.message_id != new_msg.message_id:
+        await delete_callback_message(callback)
+
+    await callback.answer()
+
+
+@dp.callback_query(F.data.startswith("material:"))
+async def material_handler(callback: CallbackQuery):
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+    await clear_quiz_and_probnik_messages(chat_id)
+
+    exam = users[chat_id].get("exam")
+    if not exam:
+        new_msg = await send_and_store(
+            chat_id,
+            "Сначала выбери экзамен:",
+            reply_markup=exam_menu()
+        )
+
+        if callback.message.message_id != new_msg.message_id:
+            await delete_callback_message(callback)
+
+        await callback.answer()
+        return
+
+    m_id = callback.data.split(":")[1]
+
+    if m_id not in materials.get(exam, {}):
+        await callback.answer("Такого материала нет", show_alert=True)
+        return
+
+    users[chat_id]["last_menu"] = "material_view"
+    users[chat_id]["mode"] = "menu"
+
+    material = materials[exam][m_id]
+    text = f"📂 {material['title']}\n\n{material['link']}"
+
+    new_msg = await send_and_store(
+        chat_id,
+        text,
+        reply_markup=materials_back_menu()
+    )
+
+    if callback.message.message_id != new_msg.message_id:
+        await delete_callback_message(callback)
+
+    await callback.answer()
+
+
 @dp.callback_query(F.data.startswith("start_hw:"))
 async def start_hw_handler(callback: CallbackQuery):
     if not is_allowed(callback.from_user.id):
@@ -525,45 +635,6 @@ async def probnik_handler(callback: CallbackQuery):
         chat_id,
         "Введи код варианта:",
         reply_markup=probnik_back_menu()
-    )
-
-    if callback.message.message_id != new_msg.message_id:
-        await delete_callback_message(callback)
-
-    await callback.answer()
-
-
-@dp.callback_query(F.data == "help")
-async def help_handler(callback: CallbackQuery):
-    if not is_allowed(callback.from_user.id):
-        await callback.answer("Нет доступа", show_alert=True)
-        return
-
-    chat_id = callback.message.chat.id
-    ensure_user(chat_id)
-    await clear_quiz_and_probnik_messages(chat_id)
-
-    users[chat_id]["mode"] = "menu"
-    users[chat_id]["last_menu"] = "help"
-
-    file = FSInputFile("data/guide.pdf")
-
-    msg = await bot.send_document(
-        chat_id=chat_id,
-        document=file,
-        caption="📘 Руководство по боту:"
-    )
-    users[chat_id]["history_message_ids"].append(msg.message_id)
-
-    await send_history_message(
-        chat_id,
-        "❓ Остались вопросы?\nНапиши мне: @kob_ww"
-    )
-
-    new_msg = await send_and_store(
-        chat_id,
-        "Если что — нажми «Назад» 👇",
-        reply_markup=back_kb_to_main()
     )
 
     if callback.message.message_id != new_msg.message_id:
