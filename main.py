@@ -31,6 +31,12 @@ ALLOWED_USERS = set(load_json("allowed_users.json")["users"])
 
 users = {}
 
+def hw_back_menu():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="⬅️ Назад", callback_data="hw_back")
+    kb.adjust(1)
+    return kb.as_markup()
+
 def exam_menu():
     kb = InlineKeyboardBuilder()
     kb.button(text="📗 ЕГЭ", callback_data="exam:ege")
@@ -497,39 +503,53 @@ async def start_hw_handler(callback: CallbackQuery):
         "question_index": 0,
         "score": 0,
         "answers": [],
+        "mode": "homework_view",
         "last_menu": "choose_hw",
     })
 
-    if hw.get("file_link"):
-        await send_history_message(
-            chat_id,
-            f"📄 Ссылка на домашнюю работу:\n{hw['file_link']}"
-        )
+    msg = await bot.send_message(
+        chat_id,
+        f"📄 Домашняя работа:\n{hw['file_link']}",
+        reply_markup=hw_back_menu()
+    )
+    users[chat_id]["history_message_ids"].append(msg.message_id)
 
-    if hw.get("questions"):
-        users[chat_id]["mode"] = "quiz"
-        await send_question(chat_id)
-    else:
-        users[chat_id]["mode"] = "menu"
-        await send_history_message(
-            chat_id,
-            "Вопросы для этого ДЗ пока не добавлены."
-        )
+    if callback.message.message_id != msg.message_id:
+        await delete_callback_message(callback)
 
-        new_msg = await send_and_store(
-            chat_id,
-            "Выбери нужное ДЗ:",
-            reply_markup=homework_menu(chat_id, "start_hw", "main_menu")
-        )
+    await callback.answer()
 
-        if callback.message.message_id != new_msg.message_id:
-            await delete_callback_message(callback)
-
-        await callback.answer()
+@dp.callback_query(F.data == "hw_back")
+async def hw_back_handler(callback: CallbackQuery):
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
         return
 
-    await delete_callback_message(callback)
+    chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+
+    await clear_quiz_and_probnik_messages(chat_id)
+
+    users[chat_id].update({
+        "hw": None,
+        "question_index": 0,
+        "score": 0,
+        "answers": [],
+        "mode": "menu",
+        "last_menu": "choose_hw",
+    })
+
+    new_msg = await send_and_store(
+        chat_id,
+        "Выбери нужное ДЗ:",
+        reply_markup=homework_menu(chat_id, "start_hw", "main_menu")
+    )
+
+    if callback.message.message_id != new_msg.message_id:
+        await delete_callback_message(callback)
+
     await callback.answer()
+
 
 @dp.callback_query(F.data == "quiz_back")
 async def quiz_back_handler(callback: CallbackQuery):
