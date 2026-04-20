@@ -429,7 +429,20 @@ async def theory_handler(callback: CallbackQuery):
     ensure_user(chat_id)
     await clear_quiz_and_probnik_messages(chat_id)
 
-    exam = users[chat_id]["exam"]
+    exam = users[chat_id].get("exam")
+    if not exam:
+        new_msg = await send_and_store(
+            chat_id,
+            "Сначала выбери экзамен:",
+            reply_markup=exam_menu()
+        )
+
+        if callback.message.message_id != new_msg.message_id:
+            await delete_callback_message(callback)
+
+        await callback.answer()
+        return
+
     t_id = callback.data.split(":")[1]
 
     if t_id not in theory_tasks[exam]:
@@ -450,7 +463,6 @@ async def theory_handler(callback: CallbackQuery):
 
     await callback.answer()
 
-
 @dp.callback_query(F.data.startswith("start_hw:"))
 async def start_hw_handler(callback: CallbackQuery):
     if not is_allowed(callback.from_user.id):
@@ -461,8 +473,21 @@ async def start_hw_handler(callback: CallbackQuery):
     ensure_user(chat_id)
     await clear_quiz_and_probnik_messages(chat_id)
 
+    exam = users[chat_id].get("exam")
+    if not exam:
+        new_msg = await send_and_store(
+            chat_id,
+            "Сначала выбери экзамен:",
+            reply_markup=exam_menu()
+        )
+
+        if callback.message.message_id != new_msg.message_id:
+            await delete_callback_message(callback)
+
+        await callback.answer()
+        return
+
     hw_id = callback.data.split(":")[1]
-    exam = users[chat_id]["exam"]
     hw = homeworks[exam][hw_id]
 
     users[chat_id].update({
@@ -485,7 +510,6 @@ async def start_hw_handler(callback: CallbackQuery):
         await delete_callback_message(callback)
 
     await callback.answer()
-
 @dp.callback_query(F.data == "hw_back")
 async def hw_back_handler(callback: CallbackQuery):
     if not is_allowed(callback.from_user.id):
