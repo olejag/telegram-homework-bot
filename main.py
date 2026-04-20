@@ -140,7 +140,7 @@ def calculate_score(chat_id: int, hw_id: str, answers: list) -> int:
     score = 0
 
     for i, user_answer in enumerate(answers):
-        if i < len(hw["questions"]):
+        if i < len(hw.get("questions", [])):
             correct_answer = hw["questions"][i]["answer"].strip().lower()
             if user_answer.strip().lower() == correct_answer:
                 score += 1
@@ -212,7 +212,8 @@ def probnik_back_menu():
 async def send_question(chat_id: int):
     ensure_user(chat_id)
     user = users[chat_id]
-    hw = homeworks[user["hw"]]
+    exam = users[chat_id]["exam"]
+    hw = homeworks[exam][user["hw"]]
     index = user["question_index"]
 
     if index >= len(hw["questions"]):
@@ -488,14 +489,14 @@ async def start_hw_handler(callback: CallbackQuery):
     await clear_quiz_and_probnik_messages(chat_id)
 
     hw_id = callback.data.split(":")[1]
-    hw = homeworks[hw_id]
+    exam = users[chat_id]["exam"]
+    hw = homeworks[exam][hw_id]
 
     users[chat_id].update({
         "hw": hw_id,
         "question_index": 0,
         "score": 0,
         "answers": [],
-        "mode": "quiz",
         "last_menu": "choose_hw",
     })
 
@@ -505,7 +506,28 @@ async def start_hw_handler(callback: CallbackQuery):
             f"📄 Ссылка на домашнюю работу:\n{hw['file_link']}"
         )
 
-    await send_question(chat_id)
+    if hw.get("questions"):
+        users[chat_id]["mode"] = "quiz"
+        await send_question(chat_id)
+    else:
+        users[chat_id]["mode"] = "menu"
+        await send_history_message(
+            chat_id,
+            "Вопросы для этого ДЗ пока не добавлены."
+        )
+
+        new_msg = await send_and_store(
+            chat_id,
+            "Выбери нужное ДЗ:",
+            reply_markup=homework_menu(chat_id, "start_hw", "main_menu")
+        )
+
+        if callback.message.message_id != new_msg.message_id:
+            await delete_callback_message(callback)
+
+        await callback.answer()
+        return
+
     await delete_callback_message(callback)
     await callback.answer()
 
