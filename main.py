@@ -9,9 +9,9 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import FSInputFile
 
 
-TOKEN = os.getenv("8364336026:AAF8URPzsw1OLmBfeRiRFGZIxQVNb4nMaAM")
+TOKEN = os.getenv("TOKEN")
 
-
+print("TOKEN =", TOKEN)
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
