@@ -74,6 +74,9 @@ async def delete_message_safe(chat_id: int, message_id):
         pass
 
 
+
+
+
 async def delete_last_bot_message(chat_id: int):
     ensure_user(chat_id)
     last_message_id = users[chat_id].get("last_bot_message_id")
@@ -245,6 +248,9 @@ async def send_question(chat_id: int):
         reply_markup=quiz_back_menu()
     )
     users[chat_id]["last_bot_message_id"] = None
+
+
+
 
 
 @dp.message(CommandStart())
@@ -509,7 +515,7 @@ async def start_hw_handler(callback: CallbackQuery):
 
     msg = await bot.send_message(
         chat_id,
-        f"📄 Домашняя работа:\n{hw['file_link']}",
+        f"📄 {hw['title']}:\n{hw['file_link']}",
         reply_markup=hw_back_menu()
     )
     users[chat_id]["history_message_ids"].append(msg.message_id)
