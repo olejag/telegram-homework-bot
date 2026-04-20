@@ -31,6 +31,13 @@ ALLOWED_USERS = set(load_json("allowed_users.json")["users"])
 
 users = {}
 
+def exam_menu():
+    kb = InlineKeyboardBuilder()
+    kb.button(text="📗 ЕГЭ", callback_data="exam:ege")
+    kb.button(text="📘 ОГЭ", callback_data="exam:oge")
+    kb.adjust(1)
+    return kb.as_markup()
+
 
 def is_allowed(user_id: int) -> bool:
     return user_id in ALLOWED_USERS
@@ -48,6 +55,7 @@ def ensure_user(chat_id: int):
             "last_bot_message_id": None,
             "history_message_ids": [],
             "user_message_ids": [],
+            "exam": None,
         }
 
 
@@ -126,14 +134,17 @@ async def delete_callback_message(callback: CallbackQuery):
         pass
 
 
-def calculate_score(hw_id: str, answers: list) -> int:
-    hw = homeworks[hw_id]
+def calculate_score(chat_id: int, hw_id: str, answers: list) -> int:
+    exam = users[chat_id]["exam"]
+    hw = homeworks[exam][hw_id]
     score = 0
+
     for i, user_answer in enumerate(answers):
         if i < len(hw["questions"]):
             correct_answer = hw["questions"][i]["answer"].strip().lower()
             if user_answer.strip().lower() == correct_answer:
                 score += 1
+
     return score
 
 
@@ -147,10 +158,13 @@ def main_menu():
     return kb.as_markup()
 
 
-def homework_menu(prefix: str, back_callback: str = "main_menu"):
+def homework_menu(chat_id: int, prefix: str, back_callback: str = "main_menu"):
     kb = InlineKeyboardBuilder()
-    for hw_id, hw_data in homeworks.items():
+    exam = users[chat_id]["exam"]
+
+    for hw_id, hw_data in homeworks[exam].items():
         kb.button(text=hw_data["title"], callback_data=f"{prefix}:{hw_id}")
+
     kb.button(text="⬅️ Назад", callback_data=back_callback)
     kb.adjust(1)
     return kb.as_markup()
@@ -162,10 +176,13 @@ def back_kb_to_main():
     return kb.as_markup()
 
 
-def theory_menu_kb():
+def theory_menu_kb(chat_id: int):
     kb = InlineKeyboardBuilder()
-    for t_id, t_data in theory_tasks.items():
+    exam = users[chat_id]["exam"]
+
+    for t_id, t_data in theory_tasks[exam].items():
         kb.button(text=t_data["title"], callback_data=f"theory:{t_id}")
+
     kb.button(text="⬅️ Назад", callback_data="main_menu")
     kb.adjust(1)
     return kb.as_markup()
@@ -199,7 +216,7 @@ async def send_question(chat_id: int):
     index = user["question_index"]
 
     if index >= len(hw["questions"]):
-        user["score"] = calculate_score(user["hw"], user["answers"])
+        user["score"] = calculate_score(chat_id, user["hw"], user["answers"])
         await send_history_message(
             chat_id,
             f"Твой результат: правильно {user['score']}/{len(hw['questions'])}",
@@ -247,14 +264,44 @@ async def start_handler(message: Message):
 
     await send_and_store(
         message.chat.id,
-        "Привет! Я бот для проверки домашнего задания😁",
-        reply_markup=main_menu()
+        "Привет! Я бот для проверки домашнего задания😁\n\nВыбери экзамен:",
+        reply_markup=exam_menu()
     )
+
 
     try:
         await message.delete()
     except:
         pass
+
+@dp.callback_query(F.data.startswith("exam:"))
+async def exam_choose_handler(callback: CallbackQuery):
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+    await clear_quiz_and_probnik_messages(chat_id)
+
+    exam_type = callback.data.split(":")[1]
+    users[chat_id]["exam"] = exam_type
+    users[chat_id]["mode"] = "menu"
+    users[chat_id]["last_menu"] = "main"
+
+    exam_name = "ЕГЭ" if exam_type == "ege" else "ОГЭ"
+
+    new_msg = await send_and_store(
+        chat_id,
+        f"Выбран экзамен: {exam_name}\n\nГлавное меню:",
+        reply_markup=main_menu()
+    )
+
+    if callback.message.message_id != new_msg.message_id:
+        await delete_callback_message(callback)
+
+    await callback.answer()
+
 
 
 @dp.callback_query(F.data == "probnik")
@@ -366,7 +413,7 @@ async def choose_hw_handler(callback: CallbackQuery):
     new_msg = await send_and_store(
         chat_id,
         "Выбери нужное ДЗ:",
-        reply_markup=homework_menu("start_hw", "main_menu")
+        reply_markup=homework_menu(chat_id, "start_hw", "main_menu")
     )
 
     if callback.message.message_id != new_msg.message_id:
@@ -391,7 +438,7 @@ async def theory_menu_handler(callback: CallbackQuery):
     new_msg = await send_and_store(
         chat_id,
         "Выбери задание:",
-        reply_markup=theory_menu_kb()
+        reply_markup=theory_menu_kb(chat_id)
     )
 
     if callback.message.message_id != new_msg.message_id:
@@ -585,7 +632,8 @@ async def answer_handler(message: Message):
         return
 
     user = users[chat_id]
-    hw = homeworks[user["hw"]]
+    exam = users[chat_id]["exam"]
+    hw = homeworks[exam][user["hw"]]
     index = user["question_index"]
 
     users[chat_id]["user_message_ids"].append(message.message_id)
