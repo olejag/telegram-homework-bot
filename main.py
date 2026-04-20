@@ -11,7 +11,7 @@ from aiogram.types import FSInputFile
 
 TOKEN = os.getenv("TOKEN")
 
-print("TOKEN =", TOKEN)
+
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()

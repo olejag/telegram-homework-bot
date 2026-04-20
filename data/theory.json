@@ -1,4 +1,5 @@
 {
+  "ege": {
   "t1": {
     "title": "Задание №2",
     "text": "Теория:\nhttps://education.yandex.ru/ege/inf/article/123-kak-analiticheski-reshit-zadanie-2-iz_ege_po_informatike"
@@ -7,4 +8,15 @@
     "title": "Задание №5",
     "text": "Теория:\nhttps://education.yandex.ru/ege/inf/article/158-programmnoe-reshenie-zadaniia-5-na-iazike-python"
   }
+},
+  "oge": {
+  "t1": {
+    "title": "Задание №2",
+    "text": "Теория:\nhttps://education.yandex.ru/ege/inf/article/123-kak-analiticheski-reshit-zadanie-2-iz_ege_po_informatike"
+  },
+  "t2": {
+    "title": "Задание №5",
+    "text": "Теория:\nhttps://education.yandex.ru/ege/inf/article/158-programmnoe-reshenie-zadaniia-5-na-iazike-python"
+  }
+}
 }
