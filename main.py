@@ -154,6 +154,7 @@ def ensure_user(chat_id: int):
             "question_index": 0,
             "score": 0,
             "answers": [],
+            "correct_answers": [],
             "mode": "menu",
             "last_menu": "main",
             "last_bot_message_id": None,
@@ -349,10 +350,12 @@ async def ask_homework_question(chat_id: int):
     if task_file:
         await send_history_document(chat_id, task_file, caption=f"Файл к заданию {task_number}")
 
+    reply_markup = hw_back_menu() if question_index == 0 else None
+
     await send_history_message(
         chat_id,
         f"Напиши ответ на задание {task_number} из {len(answers)}:",
-        reply_markup=hw_back_menu()
+        reply_markup=reply_markup
     )
 
 
@@ -929,10 +932,21 @@ async def answer_handler(message: Message):
         except Exception:
             pass
 
-        users[chat_id]["answers"].append(answer)
-        users[chat_id]["question_index"] += 1
-
         correct_answers = users[chat_id].get("correct_answers", [])
+        question_index = users[chat_id].get("question_index", 0)
+
+        users[chat_id]["answers"].append(answer)
+
+        if question_index < len(correct_answers):
+            correct_answer = correct_answers[question_index]
+            task_number = question_index + 1
+
+            if normalize_answer(answer) == normalize_answer(correct_answer):
+                await send_history_message(chat_id, f"Задание {task_number}: ✅ Верно")
+            else:
+                await send_history_message(chat_id, f"Задание {task_number}: ❌ Неверно")
+
+        users[chat_id]["question_index"] = question_index + 1
 
         if users[chat_id]["question_index"] >= len(correct_answers):
             await finish_homework(chat_id)
