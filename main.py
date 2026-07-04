@@ -85,14 +85,32 @@ def get_answers_list(hw_data: dict):
 
     if folder_name:
         answers_path = HOMEWORKS_DIR / folder_name / "answers.json"
-        try:
-            with open(answers_path, "r", encoding="utf-8-sig") as f:
-                answers = json.load(f)
-        except Exception as e:
-            print("Не смог прочитать answers.json:", answers_path, e)
+        if not answers_path.exists() or not answers_path.is_file():
+            return []
+
+        raw = answers_path.read_bytes()
+        if not raw.strip():
+            return []
+
+        answers = None
+        last_error = None
+
+        for encoding in ("utf-8-sig", "utf-8", "utf-16", "cp1251"):
+            try:
+                text = raw.decode(encoding)
+                answers = json.loads(text)
+                break
+            except Exception as e:
+                last_error = e
+
+        if answers is None:
+            print("Не смог прочитать answers.json:", answers_path, last_error)
             return []
     else:
         answers = hw_data.get("answers", [])
+
+    if isinstance(answers, dict) and "answers" in answers and isinstance(answers["answers"], (dict, list)):
+        answers = answers["answers"]
 
     if isinstance(answers, dict):
         return [
@@ -115,7 +133,6 @@ def ensure_user(chat_id: int):
             "question_index": 0,
             "score": 0,
             "answers": [],
-            "correct_answers": [],
             "mode": "menu",
             "last_menu": "main",
             "last_bot_message_id": None,
@@ -293,6 +310,10 @@ async def ask_homework_question(chat_id: int):
 
     hw = homeworks[exam][hw_id]
     answers = users[chat_id].get("correct_answers", [])
+    if not answers:
+        answers = get_answers_list(hw)
+        users[chat_id]["correct_answers"] = answers
+
     question_index = users[chat_id]["question_index"]
 
     if question_index >= len(answers):
@@ -327,6 +348,10 @@ async def finish_homework(chat_id: int):
 
     hw = homeworks[exam][hw_id]
     correct_answers = users[chat_id].get("correct_answers", [])
+    if not correct_answers:
+        correct_answers = get_answers_list(hw)
+        users[chat_id]["correct_answers"] = correct_answers
+
     user_answers = users[chat_id].get("answers", [])
 
     score = 0
@@ -395,7 +420,6 @@ async def start_handler(message: Message):
         "question_index": 0,
         "score": 0,
         "answers": [],
-        "correct_answers": [],
         "mode": "menu",
         "last_menu": "main",
         "exam": None,
@@ -457,7 +481,6 @@ async def main_menu_handler(callback: CallbackQuery):
         "question_index": 0,
         "score": 0,
         "answers": [],
-        "correct_answers": [],
         "mode": "menu",
         "last_menu": "main",
     })
@@ -815,7 +838,6 @@ async def hw_back_handler(callback: CallbackQuery):
         "question_index": 0,
         "score": 0,
         "answers": [],
-        "correct_answers": [],
         "mode": "menu",
         "last_menu": "choose_hw",
     })
