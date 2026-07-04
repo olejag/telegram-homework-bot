@@ -743,6 +743,13 @@ async def start_hw_handler(callback: CallbackQuery):
     main_file = find_file(folder, folder_name)
     answers = get_answers_list(hw)
 
+    await bot.send_message(
+        chat_id,
+        f"DEBUG\n"
+        f"folder={folder_name}\n"
+        f"answers={len(answers)}"
+    )
+
     print("HW =", hw)
     print("FOLDER =", folder)
     print("ANSWERS =", answers)
