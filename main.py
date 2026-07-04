@@ -80,35 +80,7 @@ def normalize_answer(answer: str) -> str:
     return answer.strip().lower().replace(" ", "")
 
 
-def get_answers_list(hw_data: dict):
-    folder_name = hw_data.get("folder")
-
-    if folder_name:
-        answers_path = HOMEWORKS_DIR / folder_name / "answers.json"
-        if not answers_path.exists() or not answers_path.is_file():
-            return []
-
-        raw = answers_path.read_bytes()
-        if not raw.strip():
-            return []
-
-        answers = None
-        last_error = None
-
-        for encoding in ("utf-8-sig", "utf-8", "utf-16", "cp1251"):
-            try:
-                text = raw.decode(encoding)
-                answers = json.loads(text)
-                break
-            except Exception as e:
-                last_error = e
-
-        if answers is None:
-            print("Не смог прочитать answers.json:", answers_path, last_error)
-            return []
-    else:
-        answers = hw_data.get("answers", [])
-
+def answers_to_list(answers):
     if isinstance(answers, dict) and "answers" in answers and isinstance(answers["answers"], (dict, list)):
         answers = answers["answers"]
 
@@ -125,6 +97,55 @@ def get_answers_list(hw_data: dict):
         return [str(answer) for answer in answers]
 
     return []
+
+
+def load_json_file(path: Path):
+    raw = path.read_bytes()
+
+    if not raw.strip():
+        return None
+
+    last_error = None
+    for encoding in ("utf-8-sig", "utf-8", "utf-16", "cp1251"):
+        try:
+            return json.loads(raw.decode(encoding))
+        except Exception as e:
+            last_error = e
+
+    print("Не смог прочитать JSON:", path, last_error)
+    return None
+
+
+def get_homework_answers(hw_id: str, hw_data: dict):
+    answers = hw_data.get("answers")
+    answers_list = answers_to_list(answers)
+
+    if answers_list:
+        return answers_list
+
+    folder_name = normalize_homework_folder(hw_id, hw_data)
+    answers_path = HOMEWORKS_DIR / folder_name / "answers.json"
+
+    if not answers_path.exists() or not answers_path.is_file():
+        return []
+
+    answers = load_json_file(answers_path)
+    return answers_to_list(answers)
+
+
+def get_answers_list(hw_data: dict):
+    folder_name = hw_data.get("folder")
+
+    if folder_name:
+        answers_path = HOMEWORKS_DIR / folder_name / "answers.json"
+
+        if not answers_path.exists() or not answers_path.is_file():
+            return answers_to_list(hw_data.get("answers", []))
+
+        answers = load_json_file(answers_path)
+        return answers_to_list(answers)
+
+    return answers_to_list(hw_data.get("answers", []))
 
 def ensure_user(chat_id: int):
     if chat_id not in users:
@@ -311,7 +332,7 @@ async def ask_homework_question(chat_id: int):
     hw = homeworks[exam][hw_id]
     answers = users[chat_id].get("correct_answers", [])
     if not answers:
-        answers = get_answers_list(hw)
+        answers = get_homework_answers(hw_id, hw)
         users[chat_id]["correct_answers"] = answers
 
     question_index = users[chat_id]["question_index"]
@@ -349,7 +370,7 @@ async def finish_homework(chat_id: int):
     hw = homeworks[exam][hw_id]
     correct_answers = users[chat_id].get("correct_answers", [])
     if not correct_answers:
-        correct_answers = get_answers_list(hw)
+        correct_answers = get_homework_answers(hw_id, hw)
         users[chat_id]["correct_answers"] = correct_answers
 
     user_answers = users[chat_id].get("answers", [])
@@ -420,6 +441,7 @@ async def start_handler(message: Message):
         "question_index": 0,
         "score": 0,
         "answers": [],
+        "correct_answers": [],
         "mode": "menu",
         "last_menu": "main",
         "exam": None,
@@ -481,6 +503,7 @@ async def main_menu_handler(callback: CallbackQuery):
         "question_index": 0,
         "score": 0,
         "answers": [],
+        "correct_answers": [],
         "mode": "menu",
         "last_menu": "main",
     })
@@ -765,8 +788,7 @@ async def start_hw_handler(callback: CallbackQuery):
     folder_name = normalize_homework_folder(hw_id, hw)
     folder = HOMEWORKS_DIR / folder_name
     main_file = find_file(folder, folder_name)
-    answers = get_answers_list(hw)
-
+    answers = get_homework_answers(hw_id, hw)
 
     users[chat_id].update({
         "hw": hw_id,
@@ -838,6 +860,7 @@ async def hw_back_handler(callback: CallbackQuery):
         "question_index": 0,
         "score": 0,
         "answers": [],
+        "correct_answers": [],
         "mode": "menu",
         "last_menu": "choose_hw",
     })
