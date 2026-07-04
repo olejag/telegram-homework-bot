@@ -288,7 +288,7 @@ async def ask_homework_question(chat_id: int):
         return
 
     hw = homeworks[exam][hw_id]
-    answers = get_answers_list(hw)
+    answers = users[chat_id].get("correct_answers", [])
     question_index = users[chat_id]["question_index"]
 
     if question_index >= len(answers):
@@ -322,7 +322,7 @@ async def finish_homework(chat_id: int):
         return
 
     hw = homeworks[exam][hw_id]
-    correct_answers = get_answers_list(hw)
+    correct_answers = users[chat_id].get("correct_answers", [])
     user_answers = users[chat_id].get("answers", [])
 
     score = 0
@@ -715,7 +715,7 @@ async def start_hw_handler(callback: CallbackQuery):
             "hw": hw_id,
             "question_index": 0,
             "score": 0,
-            "answers": [],
+            "answers": answers,
             "mode": "homework_view",
             "last_menu": "choose_hw",
         })
