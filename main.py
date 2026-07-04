@@ -86,8 +86,11 @@ def get_answers_list(hw_data: dict):
     if folder_name:
         answers_path = HOMEWORKS_DIR / folder_name / "answers.json"
 
-        with open(answers_path, "r", encoding="utf-8") as f:
-            answers = json.load(f)
+        try:
+            with open(answers_path, "r", encoding="utf-8") as f:
+                answers = json.load(f)
+        except Exception:
+            return []
     else:
         answers = hw_data.get("answers", [])
 
@@ -112,6 +115,7 @@ def ensure_user(chat_id: int):
             "question_index": 0,
             "score": 0,
             "answers": [],
+            "correct_answers": [],
             "mode": "menu",
             "last_menu": "main",
             "last_bot_message_id": None,
@@ -391,6 +395,7 @@ async def start_handler(message: Message):
         "question_index": 0,
         "score": 0,
         "answers": [],
+        "correct_answers": [],
         "mode": "menu",
         "last_menu": "main",
         "exam": None,
@@ -452,6 +457,7 @@ async def main_menu_handler(callback: CallbackQuery):
         "question_index": 0,
         "score": 0,
         "answers": [],
+        "correct_answers": [],
         "mode": "menu",
         "last_menu": "main",
     })
@@ -715,7 +721,8 @@ async def start_hw_handler(callback: CallbackQuery):
             "hw": hw_id,
             "question_index": 0,
             "score": 0,
-            "answers": answers,
+            "answers": [],
+            "correct_answers": [],
             "mode": "homework_view",
             "last_menu": "choose_hw",
         })
@@ -734,19 +741,6 @@ async def start_hw_handler(callback: CallbackQuery):
 
     folder_name = normalize_homework_folder(hw_id, hw)
     folder = HOMEWORKS_DIR / folder_name
-    answers_path = folder / "answers.json"
-
-    await bot.send_message(
-        chat_id,
-        f"DEBUG FILES\n"
-        f"BASE_DIR={BASE_DIR}\n"
-        f"HOMEWORKS_DIR={HOMEWORKS_DIR}\n"
-        f"folder={folder}\n"
-        f"folder_exists={folder.exists()}\n"
-        f"files={[p.name for p in folder.iterdir()] if folder.exists() else 'NO FOLDER'}\n"
-        f"answers_path={answers_path}\n"
-        f"answers_exists={answers_path.exists()}"
-    )
     main_file = find_file(folder, folder_name)
     answers = get_answers_list(hw)
 
@@ -756,6 +750,7 @@ async def start_hw_handler(callback: CallbackQuery):
         "question_index": 0,
         "score": 0,
         "answers": [],
+        "correct_answers": answers,
         "mode": "homework_answering" if answers else "homework_view",
         "last_menu": "choose_hw",
     })
@@ -820,6 +815,7 @@ async def hw_back_handler(callback: CallbackQuery):
         "question_index": 0,
         "score": 0,
         "answers": [],
+        "correct_answers": [],
         "mode": "menu",
         "last_menu": "choose_hw",
     })
@@ -891,12 +887,9 @@ async def answer_handler(message: Message):
         users[chat_id]["answers"].append(answer)
         users[chat_id]["question_index"] += 1
 
-        exam = users[chat_id].get("exam")
-        hw_id = users[chat_id].get("hw")
-        hw = homeworks.get(exam, {}).get(hw_id, {}) if exam and hw_id else {}
-        answers = get_answers_list(hw)
+        correct_answers = users[chat_id].get("correct_answers", [])
 
-        if users[chat_id]["question_index"] >= len(answers):
+        if users[chat_id]["question_index"] >= len(correct_answers):
             await finish_homework(chat_id)
         else:
             await ask_homework_question(chat_id)
