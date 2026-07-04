@@ -750,6 +750,19 @@ async def start_hw_handler(callback: CallbackQuery):
 
     folder_name = normalize_homework_folder(hw_id, hw)
     folder = HOMEWORKS_DIR / folder_name
+    answers_path = folder / "answers.json"
+
+    await bot.send_message(
+        chat_id,
+        f"DEBUG FILES\n"
+        f"BASE_DIR={BASE_DIR}\n"
+        f"HOMEWORKS_DIR={HOMEWORKS_DIR}\n"
+        f"folder={folder}\n"
+        f"folder_exists={folder.exists()}\n"
+        f"files={[p.name for p in folder.iterdir()] if folder.exists() else 'NO FOLDER'}\n"
+        f"answers_path={answers_path}\n"
+        f"answers_exists={answers_path.exists()}"
+    )
     main_file = find_file(folder, folder_name)
     answers = get_answers_list(hw)
 
