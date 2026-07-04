@@ -85,10 +85,6 @@ def get_answers_list(hw_data: dict):
 
     if folder_name:
         answers_path = HOMEWORKS_DIR / folder_name / "answers.json"
-
-        if not answers_path.exists() or not answers_path.is_file():
-            return []
-
         try:
             with open(answers_path, "r", encoding="utf-8-sig") as f:
                 answers = json.load(f)
@@ -111,7 +107,6 @@ def get_answers_list(hw_data: dict):
         return [str(answer) for answer in answers]
 
     return []
-
 
 def ensure_user(chat_id: int):
     if chat_id not in users:
@@ -400,6 +395,7 @@ async def start_handler(message: Message):
         "question_index": 0,
         "score": 0,
         "answers": [],
+        "correct_answers": [],
         "mode": "menu",
         "last_menu": "main",
         "exam": None,
@@ -461,6 +457,7 @@ async def main_menu_handler(callback: CallbackQuery):
         "question_index": 0,
         "score": 0,
         "answers": [],
+        "correct_answers": [],
         "mode": "menu",
         "last_menu": "main",
     })
@@ -818,6 +815,7 @@ async def hw_back_handler(callback: CallbackQuery):
         "question_index": 0,
         "score": 0,
         "answers": [],
+        "correct_answers": [],
         "mode": "menu",
         "last_menu": "choose_hw",
     })
