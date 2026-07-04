@@ -87,11 +87,16 @@ def get_answers_list(hw_data: dict):
         folder_name = hw_data.get("folder")
         if folder_name:
             answers_path = HOMEWORKS_DIR / folder_name / "answers.json"
+
+            print("Ищу ответы тут:", answers_path)
+            print("Файл существует:", answers_path.exists())
+
             if answers_path.exists() and answers_path.is_file():
                 try:
                     with open(answers_path, "r", encoding="utf-8") as f:
                         answers = json.load(f)
-                except Exception:
+                except Exception as e:
+                    print("Ошибка чтения answers.json:", e)
                     answers = None
 
     if isinstance(answers, dict):
