@@ -86,12 +86,8 @@ def get_answers_list(hw_data: dict):
     if folder_name:
         answers_path = HOMEWORKS_DIR / folder_name / "answers.json"
 
-        try:
-            with open(answers_path, "r", encoding="utf-8") as f:
-                answers = json.load(f)
-        except Exception as e:
-            print("Не смог прочитать answers.json:", answers_path, e)
-            return []
+        with open(answers_path, "r", encoding="utf-8") as f:
+            answers = json.load(f)
     else:
         answers = hw_data.get("answers", [])
 
@@ -108,18 +104,6 @@ def get_answers_list(hw_data: dict):
         return [str(answer) for answer in answers]
 
     return []
-
-    if isinstance(answers, dict):
-        return [
-            str(answers[key])
-            for key in sorted(answers.keys(), key=lambda x: int(x) if str(x).isdigit() else str(x))
-        ]
-
-    if isinstance(answers, list):
-        return [str(answer) for answer in answers]
-
-    return []
-
 
 def ensure_user(chat_id: int):
     if chat_id not in users:
