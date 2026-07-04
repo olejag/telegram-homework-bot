@@ -1,153 +1,126 @@
 {
   "ege": {
-  "hw1": {
-    "title": "Домашняя работа №1",
-      "pdf": "hw_1.pdf",
-      "answers": {
-        "1": "18",
-        "2": "12",
-        "3": "32",
-        "4": "37",
-        "5": "3",
-        "6": "45",
-        "7": "17",
-        "8": "14",
-        "9": "57",
-        "10": "52",
-        "11": "46",
-        "12": "43",
-        "13": "35",
-        "14": "27",
-        "15": "40",
-        "16": "78"
-        }
+    "hw1": {
+      "title": "Домашняя работа №1",
+      "folder": "hw_1"
+    },
+    "hw2": {
+      "title": "Домашняя работа №2",
+      "folder": "hw_2"
+    },
+    "hw3": {
+      "title": "Домашняя работа №3",
+      "folder": "hw_3"
+    },
+    "hw4": {
+      "title": "Домашняя работа №4",
+      "folder": "hw_4"
+    },
+    "hw5": {
+      "title": "Домашняя работа №5",
+      "folder": "hw_5"
+    },
+    "hw6": {
+      "title": "Домашняя работа №6",
+      "folder": "hw_6"
+    },
+    "hw7": {
+      "title": "Домашняя работа №7",
+      "folder": "hw_7"
+    },
+    "hw8": {
+      "title": "Домашняя работа №8",
+      "folder": "hw_8"
+    },
+    "hw9": {
+      "title": "Домашняя работа №9",
+      "folder": "hw_9"
+    },
+    "hw10": {
+      "title": "Домашняя работа №10",
+      "folder": "hw_10"
+    },
+    "hw11": {
+      "title": "Домашняя работа №11",
+      "folder": "hw_11"
+    },
+    "hw12": {
+      "title": "Домашняя работа №12",
+      "folder": "hw_12"
+    },
+    "hw13": {
+      "title": "Домашняя работа №13",
+      "folder": "hw_13"
+    },
+    "hw14": {
+      "title": "Домашняя работа №14",
+      "folder": "hw_14"
+    },
+    "hw15": {
+      "title": "Домашняя работа №15",
+      "folder": "hw_15"
+    },
+    "hw16": {
+      "title": "Домашняя работа №16",
+      "folder": "hw_16"
+    },
+    "hw17": {
+      "title": "Домашняя работа №17",
+      "folder": "hw_17"
+    },
+    "hw18": {
+      "title": "Домашняя работа №18",
+      "folder": "hw_18"
+    },
+    "hw19": {
+      "title": "Домашняя работа №19",
+      "folder": "hw_19"
+    },
+    "hw20": {
+      "title": "Домашняя работа №20",
+      "folder": "hw_20"
+    },
+    "hw21": {
+      "title": "Домашняя работа №21",
+      "folder": "hw_21"
+    },
+    "hw22": {
+      "title": "Домашняя работа №22",
+      "folder": "hw_22"
+    },
+    "hw23": {
+      "title": "Домашняя работа №23",
+      "folder": "hw_23"
+    }
   },
-  "hw2": {
-    "title": "Домашняя работа №2",
-    "file_link": "https://ya.cc/9DyBrQ"
-  },
-  "hw3": {
-    "title": "Домашняя работа №3",
-    "file_link": "https://ya.cc/9DyC4R"
-  },
-  "hw4": {
-    "title": "Домашняя работа №4",
-    "file_link": "https://ya.cc/9DyCB5"
-  },
-  "hw5": {
-    "title": "Домашняя работа №5",
-    "file_link": "https://ya.cc/9DyCJj"
-  },
-  "hw6": {
-    "title": "Домашняя работа №6",
-    "file_link": "https://ya.cc/9DyCX9"
-  },
-  "hw7": {
-    "title": "Домашняя работа №7",
-    "file_link": "https://ya.cc/9DyCX9"
-  },
-  "hw8": {
-    "title": "Домашняя работа №8",
-    "file_link": "https://ya.cc/9FaqbZ"
-  },
-  "hw9": {
-    "title": "Домашняя работа №9",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw10": {
-    "title": "Домашняя работа №10",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw11": {
-    "title": "Домашняя работа №11",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw12": {
-    "title": "Домашняя работа №12",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw13": {
-    "title": "Домашняя работа №13",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw14": {
-    "title": "Домашняя работа №14",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw15": {
-    "title": "Домашняя работа №15",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw16": {
-    "title": "Домашняя работа №16",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw17": {
-    "title": "Домашняя работа №17",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw18": {
-    "title": "Домашняя работа №18",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw19": {
-    "title": "Домашняя работа №19",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw20": {
-    "title": "Домашняя работа №20",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw21": {
-    "title": "Домашняя работа №21",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw22": {
-    "title": "Домашняя работа №22",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw23": {
-    "title": "Домашняя работа №23",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw24": {
-    "title": "Домашняя работа №24",
-    "file_link": "https://ya.cc/9Dxt5M"
-  },
-  "hw25": {
-    "title": "Домашняя работа №25",
-    "file_link": "https://ya.cc/9Dxt5M"
-  }
-},
   "oge": {
-  "hw1": {
-    "title": "Домашняя работа №1",
-    "file_link": "https://inf-oge.sdamgia.ru/test?id=29975149&nt=True&pub=False"
-  },
-  "hw2": {
-    "title": "Домашняя работа №2",
-    "file_link": "https://inf-oge.sdamgia.ru/test?id=29975161&nt=True&pub=False"
-  },
-  "hw3": {
-    "title": "Домашняя работа №3",
-    "file_link": "https://inf-oge.sdamgia.ru/test?id=29975165&nt=True&pub=False"
-  },
-  "hw4": {
-    "title": "Домашняя работа №4",
-    "file_link": "https://inf-oge.sdamgia.ru/test?id=29975183&nt=True&pub=False"
-  },
-  "hw5": {
-    "title": "Домашняя работа №5",
-    "file_link": "https://inf-oge.sdamgia.ru/test?id=29975202&nt=True&pub=False"
-  },
-  "hw6": {
-    "title": "Домашняя работа №6",
-    "file_link": "https://inf-oge.sdamgia.ru/test?id=29975205&nt=True&pub=False"
-  },
-  "hw7": {
-    "title": "Домашняя работа №7",
-    "file_link": "https://inf-oge.sdamgia.ru/test?id=29975215&nt=True&pub=False"
-
-}
-}
+    "hw1": {
+      "title": "Домашняя работа №1",
+      "file_link": "https://inf-oge.sdamgia.ru/test?id=29975149&nt=True&pub=False"
+    },
+    "hw2": {
+      "title": "Домашняя работа №2",
+      "file_link": "https://inf-oge.sdamgia.ru/test?id=29975161&nt=True&pub=False"
+    },
+    "hw3": {
+      "title": "Домашняя работа №3",
+      "file_link": "https://inf-oge.sdamgia.ru/test?id=29975165&nt=True&pub=False"
+    },
+    "hw4": {
+      "title": "Домашняя работа №4",
+      "file_link": "https://inf-oge.sdamgia.ru/test?id=29975183&nt=True&pub=False"
+    },
+    "hw5": {
+      "title": "Домашняя работа №5",
+      "file_link": "https://inf-oge.sdamgia.ru/test?id=29975202&nt=True&pub=False"
+    },
+    "hw6": {
+      "title": "Домашняя работа №6",
+      "file_link": "https://inf-oge.sdamgia.ru/test?id=29975205&nt=True&pub=False"
+    },
+    "hw7": {
+      "title": "Домашняя работа №7",
+      "file_link": "https://inf-oge.sdamgia.ru/test?id=29975215&nt=True&pub=False"
+    }
+  }
 }

@@ -699,6 +699,29 @@ async def start_hw_handler(callback: CallbackQuery):
         return
 
     hw = homeworks[exam][hw_id]
+
+    if exam == "oge":
+        users[chat_id].update({
+            "hw": hw_id,
+            "question_index": 0,
+            "score": 0,
+            "answers": [],
+            "mode": "homework_view",
+            "last_menu": "choose_hw",
+        })
+
+        await send_history_message(
+            chat_id,
+            f"📄 {hw['title']}:\n{hw['file_link']}",
+            reply_markup=hw_back_menu()
+        )
+
+        if callback.message.message_id not in users[chat_id]["history_message_ids"]:
+            await delete_callback_message(callback)
+
+        await callback.answer()
+        return
+
     folder_name = normalize_homework_folder(hw_id, hw)
     folder = HOMEWORKS_DIR / folder_name
     main_file = find_file(folder, folder_name)
