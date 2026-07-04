@@ -83,6 +83,17 @@ def normalize_answer(answer: str) -> str:
 def get_answers_list(hw_data: dict):
     answers = hw_data.get("answers")
 
+    if not answers:
+        folder_name = hw_data.get("folder")
+        if folder_name:
+            answers_path = HOMEWORKS_DIR / folder_name / "answers.json"
+            if answers_path.exists() and answers_path.is_file():
+                try:
+                    with open(answers_path, "r", encoding="utf-8") as f:
+                        answers = json.load(f)
+                except Exception:
+                    answers = None
+
     if isinstance(answers, dict):
         return [
             str(answers[key])
