@@ -7,6 +7,7 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.filters import CommandStart
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import FSInputFile
 
 
 TOKEN = os.getenv("TOKEN")
@@ -19,6 +20,18 @@ dp = Dispatcher()
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
+HOMEWORKS_DIR = BASE_DIR / "homeworks"
+
+SUPPORTED_EXTENSIONS = [
+    ".pdf",
+    ".doc",
+    ".docx",
+    ".odt",
+    ".txt",
+    ".xlsx",
+    ".xls",
+    ".ods",
+]
 
 
 def load_json(filename):
@@ -37,6 +50,49 @@ users = {}
 
 def is_allowed(user_id: int) -> bool:
     return user_id in ALLOWED_USERS
+
+
+def normalize_homework_folder(hw_id: str, hw_data: dict) -> str:
+    if "folder" in hw_data:
+        return hw_data["folder"]
+
+    if hw_id.startswith("hw_"):
+        return hw_id
+
+    if hw_id.startswith("hw") and hw_id[2:].isdigit():
+        return f"hw_{hw_id[2:]}"
+
+    if hw_id.isdigit():
+        return f"hw_{hw_id}"
+
+    return hw_id
+
+
+def find_file(folder: Path, name: str):
+    for ext in SUPPORTED_EXTENSIONS:
+        path = folder / f"{name}{ext}"
+        if path.exists() and path.is_file():
+            return path
+    return None
+
+
+def normalize_answer(answer: str) -> str:
+    return answer.strip().lower().replace(" ", "")
+
+
+def get_answers_list(hw_data: dict):
+    answers = hw_data.get("answers")
+
+    if isinstance(answers, dict):
+        return [
+            str(answers[key])
+            for key in sorted(answers.keys(), key=lambda x: int(x) if str(x).isdigit() else str(x))
+        ]
+
+    if isinstance(answers, list):
+        return [str(answer) for answer in answers]
+
+    return []
 
 
 def ensure_user(chat_id: int):
@@ -196,6 +252,91 @@ async def send_history_message(chat_id: int, text: str, reply_markup=None):
     msg = await bot.send_message(chat_id, text, reply_markup=reply_markup)
     users[chat_id]["history_message_ids"].append(msg.message_id)
     return msg
+
+
+async def send_history_document(chat_id: int, file_path: Path, caption: str | None = None, reply_markup=None):
+    ensure_user(chat_id)
+    msg = await bot.send_document(
+        chat_id,
+        document=FSInputFile(file_path),
+        caption=caption,
+        reply_markup=reply_markup
+    )
+    users[chat_id]["history_message_ids"].append(msg.message_id)
+    return msg
+
+
+async def ask_homework_question(chat_id: int):
+    ensure_user(chat_id)
+
+    exam = users[chat_id].get("exam")
+    hw_id = users[chat_id].get("hw")
+
+    if not exam or not hw_id or hw_id not in homeworks.get(exam, {}):
+        await send_history_message(chat_id, "Ошибка: домашняя работа не найдена.", reply_markup=hw_back_menu())
+        users[chat_id]["mode"] = "menu"
+        return
+
+    hw = homeworks[exam][hw_id]
+    answers = get_answers_list(hw)
+    question_index = users[chat_id]["question_index"]
+
+    if question_index >= len(answers):
+        await finish_homework(chat_id)
+        return
+
+    folder_name = normalize_homework_folder(hw_id, hw)
+    folder = HOMEWORKS_DIR / folder_name
+    task_number = question_index + 1
+    task_file = find_file(folder, str(task_number))
+
+    if task_file:
+        await send_history_document(chat_id, task_file, caption=f"Файл к заданию {task_number}")
+
+    await send_history_message(
+        chat_id,
+        f"Напиши ответ на задание {task_number} из {len(answers)}:",
+        reply_markup=hw_back_menu()
+    )
+
+
+async def finish_homework(chat_id: int):
+    ensure_user(chat_id)
+
+    exam = users[chat_id].get("exam")
+    hw_id = users[chat_id].get("hw")
+
+    if not exam or not hw_id or hw_id not in homeworks.get(exam, {}):
+        await send_history_message(chat_id, "Ошибка: домашняя работа не найдена.", reply_markup=hw_back_menu())
+        users[chat_id]["mode"] = "menu"
+        return
+
+    hw = homeworks[exam][hw_id]
+    correct_answers = get_answers_list(hw)
+    user_answers = users[chat_id].get("answers", [])
+
+    score = 0
+    lines = []
+
+    for i, correct_answer in enumerate(correct_answers):
+        user_answer = user_answers[i] if i < len(user_answers) else ""
+
+        if normalize_answer(user_answer) == normalize_answer(correct_answer):
+            score += 1
+            lines.append(f"{i + 1}. ✅")
+        else:
+            lines.append(f"{i + 1}. ❌")
+
+    result_text = (
+        "📊 Проверка завершена!\n\n"
+        f"Результат: {score}/{len(correct_answers)}\n\n"
+        + "\n".join(lines)
+    )
+
+    users[chat_id]["score"] = score
+    users[chat_id]["mode"] = "menu"
+
+    await send_history_message(chat_id, result_text, reply_markup=hw_back_menu())
 
 
 async def clear_history_messages(chat_id: int):
@@ -558,24 +699,45 @@ async def start_hw_handler(callback: CallbackQuery):
         return
 
     hw = homeworks[exam][hw_id]
+    folder_name = normalize_homework_folder(hw_id, hw)
+    folder = HOMEWORKS_DIR / folder_name
+    main_file = find_file(folder, folder_name)
+    answers = get_answers_list(hw)
 
     users[chat_id].update({
         "hw": hw_id,
         "question_index": 0,
         "score": 0,
         "answers": [],
-        "mode": "homework_view",
+        "mode": "homework_answering" if answers else "homework_view",
         "last_menu": "choose_hw",
     })
 
-    msg = await bot.send_message(
-        chat_id,
-        f"📄 {hw['title']}:\n{hw['file_link']}",
-        reply_markup=hw_back_menu()
-    )
-    users[chat_id]["history_message_ids"].append(msg.message_id)
+    if main_file:
+        await send_history_document(chat_id, main_file, caption=f"📄 {hw['title']}")
+    elif hw.get("file_link"):
+        await send_history_message(
+            chat_id,
+            f"📄 {hw['title']}:\n{hw['file_link']}",
+            reply_markup=hw_back_menu()
+        )
+    else:
+        await send_history_message(
+            chat_id,
+            f"Файл для {hw['title']} не найден.",
+            reply_markup=hw_back_menu()
+        )
 
-    if callback.message.message_id != msg.message_id:
+    if answers:
+        await ask_homework_question(chat_id)
+    else:
+        await send_history_message(
+            chat_id,
+            "Для этой домашней работы ответы пока не настроены.",
+            reply_markup=hw_back_menu()
+        )
+
+    if callback.message.message_id not in users[chat_id]["history_message_ids"]:
         await delete_callback_message(callback)
 
     await callback.answer()
@@ -669,6 +831,29 @@ async def answer_handler(message: Message):
         except Exception:
             pass
         await send_and_store(chat_id, "Пожалуйста, отправь текст.")
+        return
+
+    if users[chat_id].get("mode") == "homework_answering":
+        answer = message.text.strip()
+
+        try:
+            await message.delete()
+        except Exception:
+            pass
+
+        users[chat_id]["answers"].append(answer)
+        users[chat_id]["question_index"] += 1
+
+        exam = users[chat_id].get("exam")
+        hw_id = users[chat_id].get("hw")
+        hw = homeworks.get(exam, {}).get(hw_id, {}) if exam and hw_id else {}
+        answers = get_answers_list(hw)
+
+        if users[chat_id]["question_index"] >= len(answers):
+            await finish_homework(chat_id)
+        else:
+            await ask_homework_question(chat_id)
+
         return
 
     if users[chat_id].get("mode") == "probnik":
