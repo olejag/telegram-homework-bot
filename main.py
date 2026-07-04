@@ -81,23 +81,33 @@ def normalize_answer(answer: str) -> str:
 
 
 def get_answers_list(hw_data: dict):
-    answers = hw_data.get("answers")
+    folder_name = hw_data.get("folder")
 
-    if not answers:
-        folder_name = hw_data.get("folder")
-        if folder_name:
-            answers_path = HOMEWORKS_DIR / folder_name / "answers.json"
+    if folder_name:
+        answers_path = HOMEWORKS_DIR / folder_name / "answers.json"
 
-            print("Ищу ответы тут:", answers_path)
-            print("Файл существует:", answers_path.exists())
+        try:
+            with open(answers_path, "r", encoding="utf-8") as f:
+                answers = json.load(f)
+        except Exception as e:
+            print("Не смог прочитать answers.json:", answers_path, e)
+            return []
+    else:
+        answers = hw_data.get("answers", [])
 
-            if answers_path.exists() and answers_path.is_file():
-                try:
-                    with open(answers_path, "r", encoding="utf-8") as f:
-                        answers = json.load(f)
-                except Exception as e:
-                    print("Ошибка чтения answers.json:", e)
-                    answers = None
+    if isinstance(answers, dict):
+        return [
+            str(answers[key])
+            for key in sorted(
+                answers.keys(),
+                key=lambda x: int(x) if str(x).isdigit() else str(x)
+            )
+        ]
+
+    if isinstance(answers, list):
+        return [str(answer) for answer in answers]
+
+    return []
 
     if isinstance(answers, dict):
         return [
@@ -743,16 +753,6 @@ async def start_hw_handler(callback: CallbackQuery):
     main_file = find_file(folder, folder_name)
     answers = get_answers_list(hw)
 
-    await bot.send_message(
-        chat_id,
-        f"DEBUG\n"
-        f"folder={folder_name}\n"
-        f"answers={len(answers)}"
-    )
-
-    print("HW =", hw)
-    print("FOLDER =", folder)
-    print("ANSWERS =", answers)
 
     users[chat_id].update({
         "hw": hw_id,
