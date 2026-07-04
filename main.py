@@ -743,6 +743,10 @@ async def start_hw_handler(callback: CallbackQuery):
     main_file = find_file(folder, folder_name)
     answers = get_answers_list(hw)
 
+    print("HW =", hw)
+    print("FOLDER =", folder)
+    print("ANSWERS =", answers)
+
     users[chat_id].update({
         "hw": hw_id,
         "question_index": 0,
