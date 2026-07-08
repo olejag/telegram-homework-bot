@@ -155,6 +155,10 @@ def ensure_user(chat_id: int):
             "score": 0,
             "answers": [],
             "correct_answers": [],
+            "wrong_questions": [],
+            "repeat_answers": [],
+            "repeat_results": [],
+            "repeat_wrong_questions_next": [],
             "mode": "menu",
             "last_menu": "main",
             "last_bot_message_id": None,
@@ -165,6 +169,17 @@ def ensure_user(chat_id: int):
 
 def hw_back_menu():
     kb = InlineKeyboardBuilder()
+    kb.button(text="⬅️ Назад", callback_data="hw_back")
+    kb.adjust(1)
+    return kb.as_markup()
+
+
+def homework_result_menu(wrong_questions=None):
+    kb = InlineKeyboardBuilder()
+
+    if wrong_questions:
+        kb.button(text="🔁 Повторить ошибки", callback_data="repeat_errors")
+
     kb.button(text="⬅️ Назад", callback_data="hw_back")
     kb.adjust(1)
     return kb.as_markup()
@@ -380,15 +395,18 @@ async def finish_homework(chat_id: int):
 
     score = 0
     lines = []
+    wrong_questions = []
 
     for i, correct_answer in enumerate(correct_answers):
         user_answer = user_answers[i] if i < len(user_answers) else ""
+        task_number = i + 1
 
         if normalize_answer(user_answer) == normalize_answer(correct_answer):
             score += 1
-            lines.append(f"{i + 1}. ✅")
+            lines.append(f"{task_number}. ✅")
         else:
-            lines.append(f"{i + 1}. ❌")
+            lines.append(f"{task_number}. ❌")
+            wrong_questions.append(task_number)
 
     result_text = (
         "📊 Проверка завершена!\n\n"
@@ -396,10 +414,120 @@ async def finish_homework(chat_id: int):
         + "\n".join(lines)
     )
 
+    if wrong_questions:
+        result_text += "\n\nМожно повторить только задания с ошибками."
+    else:
+        result_text += "\n\n🎉 Отлично! Ошибок нет."
+
     users[chat_id]["score"] = score
+    users[chat_id]["wrong_questions"] = wrong_questions
+    users[chat_id]["repeat_answers"] = []
+    users[chat_id]["repeat_results"] = []
+    users[chat_id]["repeat_wrong_questions_next"] = []
     users[chat_id]["mode"] = "menu"
 
-    await send_history_message(chat_id, result_text, reply_markup=hw_back_menu())
+    await send_history_message(chat_id, result_text, reply_markup=homework_result_menu(wrong_questions))
+
+
+async def ask_repeat_error_question(chat_id: int):
+    ensure_user(chat_id)
+
+    exam = users[chat_id].get("exam")
+    hw_id = users[chat_id].get("hw")
+
+    if not exam or not hw_id or hw_id not in homeworks.get(exam, {}):
+        await send_history_message(chat_id, "Ошибка: домашняя работа не найдена.", reply_markup=hw_back_menu())
+        users[chat_id]["mode"] = "menu"
+        return
+
+    hw = homeworks[exam][hw_id]
+    correct_answers = users[chat_id].get("correct_answers", [])
+    if not correct_answers:
+        correct_answers = get_homework_answers(hw_id, hw)
+        users[chat_id]["correct_answers"] = correct_answers
+
+    wrong_questions = users[chat_id].get("wrong_questions", [])
+    question_index = users[chat_id].get("question_index", 0)
+
+    if not wrong_questions:
+        users[chat_id]["mode"] = "menu"
+        await send_history_message(
+            chat_id,
+            "Ошибок для повтора нет ✅",
+            reply_markup=hw_back_menu()
+        )
+        return
+
+    if question_index >= len(wrong_questions):
+        await finish_repeat_errors(chat_id)
+        return
+
+    task_number = wrong_questions[question_index]
+
+    if task_number < 1 or task_number > len(correct_answers):
+        users[chat_id]["repeat_wrong_questions_next"].append(task_number)
+        users[chat_id]["question_index"] = question_index + 1
+        await ask_repeat_error_question(chat_id)
+        return
+
+    folder_name = normalize_homework_folder(hw_id, hw)
+    folder = HOMEWORKS_DIR / folder_name
+    task_file = find_file(folder, str(task_number))
+
+    if task_file:
+        await send_history_document(chat_id, task_file, caption=f"Файл к заданию {task_number}")
+
+    reply_markup = hw_back_menu() if question_index == 0 else None
+
+    await send_history_message(
+        chat_id,
+        f"🔁 Повтор ошибок\n\nНапиши ответ на задание {task_number} ({question_index + 1} из {len(wrong_questions)}):",
+        reply_markup=reply_markup
+    )
+
+
+async def finish_repeat_errors(chat_id: int):
+    ensure_user(chat_id)
+
+    wrong_questions = users[chat_id].get("wrong_questions", [])
+    repeat_results = users[chat_id].get("repeat_results", [])
+    new_wrong_questions = users[chat_id].get("repeat_wrong_questions_next", [])
+
+    total = len(wrong_questions)
+    score = sum(1 for _, is_correct in repeat_results if is_correct)
+
+    lines = []
+    for task_number, is_correct in repeat_results:
+        if is_correct:
+            lines.append(f"{task_number}. ✅")
+        else:
+            lines.append(f"{task_number}. ❌")
+
+    if total == 0:
+        result_text = "Ошибок для повтора нет ✅"
+    elif new_wrong_questions:
+        result_text = (
+            "🔁 Повтор ошибок завершён!\n\n"
+            f"Результат: {score}/{total}\n\n"
+            + "\n".join(lines)
+            + "\n\nОстались ошибки. Можно повторить их ещё раз."
+        )
+    else:
+        result_text = (
+            "🎉 Повтор ошибок завершён!\n\n"
+            f"Результат: {score}/{total}\n\n"
+            + "\n".join(lines)
+            + "\n\nВсе ошибки исправлены ✅"
+        )
+
+    users[chat_id]["wrong_questions"] = new_wrong_questions
+    users[chat_id]["repeat_answers"] = []
+    users[chat_id]["repeat_results"] = []
+    users[chat_id]["repeat_wrong_questions_next"] = []
+    users[chat_id]["question_index"] = 0
+    users[chat_id]["mode"] = "menu"
+
+    await send_history_message(chat_id, result_text, reply_markup=homework_result_menu(new_wrong_questions))
 
 
 async def clear_history_messages(chat_id: int):
@@ -445,6 +573,10 @@ async def start_handler(message: Message):
         "score": 0,
         "answers": [],
         "correct_answers": [],
+        "wrong_questions": [],
+        "repeat_answers": [],
+        "repeat_results": [],
+        "repeat_wrong_questions_next": [],
         "mode": "menu",
         "last_menu": "main",
         "exam": None,
@@ -507,6 +639,10 @@ async def main_menu_handler(callback: CallbackQuery):
         "score": 0,
         "answers": [],
         "correct_answers": [],
+        "wrong_questions": [],
+        "repeat_answers": [],
+        "repeat_results": [],
+        "repeat_wrong_questions_next": [],
         "mode": "menu",
         "last_menu": "main",
     })
@@ -772,6 +908,10 @@ async def start_hw_handler(callback: CallbackQuery):
             "score": 0,
             "answers": [],
             "correct_answers": [],
+            "wrong_questions": [],
+            "repeat_answers": [],
+            "repeat_results": [],
+            "repeat_wrong_questions_next": [],
             "mode": "homework_view",
             "last_menu": "choose_hw",
         })
@@ -799,6 +939,10 @@ async def start_hw_handler(callback: CallbackQuery):
         "score": 0,
         "answers": [],
         "correct_answers": answers,
+        "wrong_questions": [],
+        "repeat_answers": [],
+        "repeat_results": [],
+        "repeat_wrong_questions_next": [],
         "mode": "homework_answering" if answers else "homework_view",
         "last_menu": "choose_hw",
     })
@@ -826,6 +970,51 @@ async def start_hw_handler(callback: CallbackQuery):
             "Для этой домашней работы ответы пока не настроены.",
             reply_markup=hw_back_menu()
         )
+
+    if callback.message.message_id not in users[chat_id]["history_message_ids"]:
+        await delete_callback_message(callback)
+
+    await callback.answer()
+
+
+@dp.callback_query(F.data == "repeat_errors")
+async def repeat_errors_handler(callback: CallbackQuery):
+    if not is_allowed(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    chat_id = callback.message.chat.id
+    ensure_user(chat_id)
+
+    wrong_questions = users[chat_id].get("wrong_questions", [])
+    correct_answers = users[chat_id].get("correct_answers", [])
+
+    if not wrong_questions:
+        await callback.answer("Ошибок для повтора нет", show_alert=True)
+        return
+
+    if not correct_answers:
+        exam = users[chat_id].get("exam")
+        hw_id = users[chat_id].get("hw")
+        hw = homeworks.get(exam, {}).get(hw_id, {}) if exam and hw_id else {}
+        correct_answers = get_homework_answers(hw_id, hw) if hw_id else []
+        users[chat_id]["correct_answers"] = correct_answers
+
+    users[chat_id].update({
+        "question_index": 0,
+        "repeat_answers": [],
+        "repeat_results": [],
+        "repeat_wrong_questions_next": [],
+        "mode": "repeat_errors",
+        "last_menu": "choose_hw",
+    })
+
+    await clear_quiz_and_probnik_messages(chat_id)
+    await send_history_message(
+        chat_id,
+        f"Начинаем повтор ошибок. Всего заданий: {len(wrong_questions)}."
+    )
+    await ask_repeat_error_question(chat_id)
 
     if callback.message.message_id not in users[chat_id]["history_message_ids"]:
         await delete_callback_message(callback)
@@ -864,6 +1053,10 @@ async def hw_back_handler(callback: CallbackQuery):
         "score": 0,
         "answers": [],
         "correct_answers": [],
+        "wrong_questions": [],
+        "repeat_answers": [],
+        "repeat_results": [],
+        "repeat_wrong_questions_next": [],
         "mode": "menu",
         "last_menu": "choose_hw",
     })
@@ -952,6 +1145,47 @@ async def answer_handler(message: Message):
             await finish_homework(chat_id)
         else:
             await ask_homework_question(chat_id)
+
+        return
+
+    if users[chat_id].get("mode") == "repeat_errors":
+        answer = message.text.strip()
+
+        try:
+            await message.delete()
+        except Exception:
+            pass
+
+        correct_answers = users[chat_id].get("correct_answers", [])
+        wrong_questions = users[chat_id].get("wrong_questions", [])
+        question_index = users[chat_id].get("question_index", 0)
+
+        if question_index >= len(wrong_questions):
+            await finish_repeat_errors(chat_id)
+            return
+
+        task_number = wrong_questions[question_index]
+        users[chat_id]["repeat_answers"].append(answer)
+
+        is_correct = False
+        if 1 <= task_number <= len(correct_answers):
+            correct_answer = correct_answers[task_number - 1]
+            is_correct = normalize_answer(answer) == normalize_answer(correct_answer)
+
+        users[chat_id]["repeat_results"].append((task_number, is_correct))
+
+        if is_correct:
+            await send_history_message(chat_id, f"Задание {task_number}: ✅ Верно")
+        else:
+            await send_history_message(chat_id, f"Задание {task_number}: ❌ Неверно")
+            users[chat_id]["repeat_wrong_questions_next"].append(task_number)
+
+        users[chat_id]["question_index"] = question_index + 1
+
+        if users[chat_id]["question_index"] >= len(wrong_questions):
+            await finish_repeat_errors(chat_id)
+        else:
+            await ask_repeat_error_question(chat_id)
 
         return
 
