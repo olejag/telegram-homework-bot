@@ -196,7 +196,6 @@ def exam_menu():
 def main_menu():
     kb = InlineKeyboardBuilder()
     kb.button(text="📚 Выбрать ДЗ", callback_data="choose_hw")
-    kb.button(text="📖 Теория", callback_data="theory_menu")
     kb.button(text="🧪 Пробники", callback_data="probnik")
     kb.button(text="📂 Полезные материалы", callback_data="materials_menu")
     kb.adjust(1)
