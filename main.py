@@ -19,7 +19,7 @@ bot = Bot(token=TOKEN)
 dp = Dispatcher()
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
+DATA_DIR = BASE_DIR / "config"
 HOMEWORKS_DIR = BASE_DIR / "homeworks"
 
 SUPPORTED_EXTENSIONS = [
