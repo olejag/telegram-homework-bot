@@ -238,8 +238,13 @@ def homework_menu(chat_id: int, prefix: str, back_callback: str = "main_menu"):
     # Собираем все кнопки домашних заданий в список
     buttons = []
     for hw_id, hw_data in homeworks.get(exam, {}).items():
+        number = hw_id.replace("hw", "").replace("_", "")
+
         buttons.append(
-            InlineKeyboardButton(text=hw_data["title"], callback_data=f"{prefix}:{hw_id}")
+            InlineKeyboardButton(
+                text=f"ДЗ №{number}",
+                callback_data=f"{prefix}:{hw_id}"
+            )
         )
 
     # Разбиваем на строки по 3 кнопки в каждой
