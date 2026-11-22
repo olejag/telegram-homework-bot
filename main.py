@@ -10,7 +10,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.types import FSInputFile
 
 
-TOKEN = os.getenv("TOKEN")
+TOKEN = os.getenv("8364336026:AAF8URPzsw1OLmBfeRiRFGZIxQVNb4nMaAM")
 
 if not TOKEN:
     raise ValueError("Переменная окружения TOKEN не задана")
